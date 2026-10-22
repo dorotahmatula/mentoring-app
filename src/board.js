@@ -37,7 +37,7 @@ export class Board {
     this.selbar = h('div', { class: 'selbar', hidden: true });
     this.palette = h('div', { class: 'palette', hidden: true, role: 'menu', 'aria-label': 'Emotki' },
       EMOJIS.map(e => h('button', { type: 'button', role: 'menuitem', 'aria-label': 'Emotka ' + e, onClick: () => { this.pendingEmoji = e; this.palette.hidden = true; } }, e)));
-    this.hint = h('div', { class: 'board-hint' }, 'Dwuklik edytuje · Delete usuwa · Ctrl + kółko przybliża · Ctrl+V wkleja obraz lub tekst');
+    this.hint = h('div', { class: 'board-hint' }, 'Dwuklik w karteczkę edytuje tekst · dwuklik w puste miejsce dodaje karteczkę · Delete usuwa · Ctrl + kółko przybliża · Ctrl+V wkleja');
     this.viewport = h('div', { class: 'viewport', tabindex: '0', 'aria-label': 'Tablica do wspólnej pracy' }, this.world, this.selbar, this.palette, this.hint);
     this.fileInput = h('input', { type: 'file', accept: 'image/*', class: 'sr-only', tabindex: '-1', 'aria-hidden': 'true', onChange: (e) => { const f = e.target.files[0]; if (f) this.addImageFile(f); e.target.value = ''; } });
     this.el = h('section', { class: 'board-card', 'aria-label': 'Tablica' },
@@ -61,7 +61,10 @@ export class Board {
     vp.addEventListener('pointerup', (e) => this._up(e));
     vp.addEventListener('pointercancel', (e) => this._up(e));
     vp.addEventListener('dblclick', (e) => {
-      const el = e.target.closest('.item');
+      // Po przeciągnięciu wskaźnik jest „przechwycony” przez tablicę, więc sprawdzamy, co faktycznie leży pod kursorem.
+      const hit = document.elementFromPoint(e.clientX, e.clientY);
+      const el = hit && hit.closest ? hit.closest('.item') : e.target.closest('.item');
+      if (el && el.dataset.key === this.editing) return;
       if (el && ['sticky', 'text', 'shape'].includes(el.dataset.type)) this.edit(el.dataset.key);
       else if (!el && this.tool === 'select') { const p = this.toWorld(e); this.create('sticky', p); }
     });
@@ -302,6 +305,7 @@ export class Board {
     if (v.type === 'emoji') kids.push(
       h('button', { type: 'button', class: 'mini-btn', 'aria-label': 'Pomniejsz', onClick: () => this._change(key, { size: Math.max(24, (v.size || 44) - 12) }) }, '−'),
       h('button', { type: 'button', class: 'mini-btn', 'aria-label': 'Powiększ', onClick: () => this._change(key, { size: Math.min(160, (v.size || 44) + 12) }) }, '+'));
+    if (['sticky', 'text', 'shape'].includes(v.type)) kids.push(h('button', { type: 'button', class: 'btn btn-ghost', style: { height: '32px' }, onClick: () => this.edit(key) }, 'Edytuj tekst'));
     kids.push(h('button', { type: 'button', class: 'mini-btn', 'aria-label': 'Na wierzch', title: 'Na wierzch', onClick: () => this._change(key, { z: this.maxZ() + 1 }) }, icon('front', 18)));
     kids.push(h('button', { type: 'button', class: 'mini-btn', 'aria-label': 'Usuń', title: 'Usuń', onClick: () => this.remove(key) }, icon('trash', 18)));
     this.selbar.replaceChildren(...kids);
@@ -439,6 +443,7 @@ export class Board {
   _up(e) {
     const d = this.drag;
     this.drag = null;
+    try { if (this.viewport.hasPointerCapture(e.pointerId)) this.viewport.releasePointerCapture(e.pointerId); } catch {}
     this.viewport.classList.remove('panning');
     if (!d) return;
     if (d.mode === 'pen') {
