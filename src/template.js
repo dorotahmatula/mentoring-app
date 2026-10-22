@@ -1,6 +1,6 @@
 // Szablon „Jak działamy i cele” oraz boczny panel (Parking, Co zabieram).
 
-import { h, uid, debounce, autosize, icon } from './util.js?v=202610221739';
+import { h, uid, debounce, autosize, icon } from './util.js?v=202610221749';
 
 const MAX_GOALS = 3;
 
@@ -19,8 +19,7 @@ export const HOW_FIELDS = (coachName) => [
 ];
 
 export const TAKE_FIELDS = (session) => [
-  ['take:important', 'Najważniejsze dla mnie dziś'],
-  ['take:valuable', 'Co było najcenniejsze?'],
+  ['take:important', 'Co dziś odkryłam?'],
   ['take:next', session.number < session.total ? `Mój krok do sesji ${session.number + 1}` : 'Mój następny krok']
 ];
 
@@ -162,7 +161,7 @@ export class SideView {
       h('section', { class: 'takeaways', 'aria-labelledby': 'take-h' },
         h('h2', { id: 'take-h' }, 'Co zabieram'),
         ...TAKE_FIELDS(session).map(([key, label]) => h('label', { class: 'field-label' }, label, this.bind.text(key, { cls: '', label }))),
-        h('p', { class: 'hint' }, 'Wypełnia klientka na koniec sesji. Zapisuje się samo i trafia do eksportu.')));
+        h('p', { class: 'hint' }, 'Wypełnia mentee na koniec sesji. Zapisuje się samo i trafia do eksportu.')));
     this._list();
   }
 

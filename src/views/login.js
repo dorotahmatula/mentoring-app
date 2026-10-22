@@ -1,5 +1,5 @@
-import { h } from '../util.js?v=202610221739';
-import { topbar } from './chrome.js?v=202610221739';
+import { h } from '../util.js?v=202610221749';
+import { topbar } from './chrome.js?v=202610221749';
 
 export function renderLogin(backend, cfg) {
   const err = h('p', { class: 'error', role: 'alert' });

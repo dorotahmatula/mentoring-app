@@ -1,8 +1,8 @@
-import { h } from './util.js?v=202610221739';
-import { createDemoBackend } from './backend/demo.js?v=202610221739';
-import { renderLogin } from './views/login.js?v=202610221739';
-import { renderDashboard } from './views/dashboard.js?v=202610221739';
-import { renderSession } from './views/session.js?v=202610221739';
+import { h } from './util.js?v=202610221749';
+import { createDemoBackend } from './backend/demo.js?v=202610221749';
+import { renderLogin } from './views/login.js?v=202610221749';
+import { renderDashboard } from './views/dashboard.js?v=202610221749';
+import { renderSession } from './views/session.js?v=202610221749';
 
 const cfg = window.TABLICA_CONFIG || {};
 const app = document.getElementById('app');
@@ -13,7 +13,7 @@ let routing = Promise.resolve();
 async function boot() {
   try {
     if (cfg.supabaseUrl && cfg.supabaseAnonKey) {
-      const { createSupabaseBackend } = await import('./backend/supabase.js?v=202610221739');
+      const { createSupabaseBackend } = await import('./backend/supabase.js?v=202610221749');
       backend = await createSupabaseBackend(cfg);
     } else backend = createDemoBackend();
     await backend.init();
