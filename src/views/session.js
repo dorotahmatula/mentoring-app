@@ -1,12 +1,12 @@
 // Ekran sesji na żywo.
 
-import { h, icon, initials, toast } from '../util.js';
-import { SessionStore } from '../store.js';
-import { Votes, personColor, VOTES_PER_PERSON } from '../votes.js';
-import { Board } from '../board.js';
-import { TemplateView, SideView } from '../template.js';
-import { exportSessionPNG } from '../export.js';
-import { topbar } from './chrome.js';
+import { h, icon, initials, toast } from '../util.js?v=202610221739';
+import { SessionStore } from '../store.js?v=202610221739';
+import { Votes, personColor, VOTES_PER_PERSON } from '../votes.js?v=202610221739';
+import { Board } from '../board.js?v=202610221739';
+import { TemplateView, SideView } from '../template.js?v=202610221739';
+import { exportSessionPNG } from '../export.js?v=202610221739';
+import { topbar } from './chrome.js?v=202610221739';
 
 const TOOLS = [
   ['select', 'cursor', 'Zaznacz i przesuwaj'],

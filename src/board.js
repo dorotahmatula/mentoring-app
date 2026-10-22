@@ -1,7 +1,7 @@
 // Tablica do wspólnej pracy: karteczki, tekst, kształty, rysowanie, obrazy, emotki.
 // Każdy element to osobny klucz item:<id> w stanie sesji, więc zmiany widać u obu osób na bieżąco.
 
-import { h, uid, throttle, debounce, icon } from './util.js';
+import { h, uid, throttle, debounce, icon } from './util.js?v=202610221739';
 
 export const STICKY_COLORS = ['#FFF4C2', '#FFE0EF', '#E6E4FB', '#DDF3E4'];
 export const INK_COLORS = ['#0F08A1', '#5B4FD6', '#FF6633', '#1A1A1A'];
@@ -65,6 +65,7 @@ export class Board {
       const hit = document.elementFromPoint(e.clientX, e.clientY);
       const el = hit && hit.closest ? hit.closest('.item') : e.target.closest('.item');
       if (el && el.dataset.key === this.editing) return;
+      if (this.lastTap && this.lastTap.key && Date.now() - this.lastTap.t < 600) return; // dwuklik był w karteczkę
       if (el && ['sticky', 'text', 'shape'].includes(el.dataset.type)) this.edit(el.dataset.key);
       else if (!el && this.tool === 'select') { const p = this.toWorld(e); this.create('sticky', p); }
     });
@@ -379,6 +380,16 @@ export class Board {
     const path = e.target.closest('path[data-key]');
     if (this.editing && !(itemEl && itemEl.dataset.key === this.editing)) this.finishEdit();
     if (itemEl && itemEl.dataset.key === this.editing) return;
+    // Własne wykrywanie dwukliku: dwa kliknięcia w tę samą karteczkę w krótkim czasie = edycja tekstu.
+    const now = Date.now();
+    const tapKey = itemEl?.dataset.key || null;
+    if (tapKey && this.lastTap && this.lastTap.key === tapKey && now - this.lastTap.t < 450 && ['sticky', 'text', 'shape'].includes(itemEl.dataset.type) && this.tool === 'select') {
+      this.lastTap = { key: null, t: now };
+      e.preventDefault();
+      this.edit(tapKey);
+      return;
+    }
+    this.lastTap = { key: tapKey, t: now };
     this.viewport.focus({ preventScroll: true });
     const t = this.tool;
     if (t === 'pen') {
