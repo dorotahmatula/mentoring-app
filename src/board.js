@@ -1,7 +1,7 @@
 // Tablica do wspólnej pracy: karteczki, tekst, kształty, rysowanie, obrazy, emotki.
 // Każdy element to osobny klucz item:<id> w stanie sesji, więc zmiany widać u obu osób na bieżąco.
 
-import { h, uid, throttle, debounce, icon } from './util.js?v=202610221749';
+import { h, uid, throttle, debounce, icon } from './util.js?v=202610261252';
 
 export const STICKY_COLORS = ['#FFF4C2', '#FFE0EF', '#E6E4FB', '#DDF3E4'];
 export const INK_COLORS = ['#0F08A1', '#5B4FD6', '#FF6633', '#1A1A1A'];
@@ -280,10 +280,16 @@ export class Board {
   }
 
   _order() {
+    // Przestawiamy elementy w drzewie strony tylko wtedy, gdy kolejność naprawdę się zmieniła.
+    // Każde przestawienie zdejmuje kursor z edytowanej karteczki, więc nie robimy tego przy zwykłym pisaniu.
     const items = [...this.nodes.entries()].filter(([, n]) => n.tagName !== 'path').map(([k, n]) => [this.store.get(k)?.z || 0, n]);
-    items.sort((a, b) => a[0] - b[0]).forEach(([, n]) => this.world.insertBefore(n, this.svg));
+    items.sort((a, b) => a[0] - b[0]);
+    const current = [...this.world.children].filter(n => n !== this.svg);
+    if (items.some(([, n], i) => current[i] !== n)) items.forEach(([, n]) => this.world.insertBefore(n, this.svg));
     const strokes = [...this.nodes.entries()].filter(([, n]) => n.tagName === 'path').map(([k, n]) => [this.store.get(k)?.z || 0, n]);
-    strokes.sort((a, b) => a[0] - b[0]).forEach(([, n]) => this.svg.append(n));
+    strokes.sort((a, b) => a[0] - b[0]);
+    const curStrokes = [...this.svg.children];
+    if (strokes.some(([, n], i) => curStrokes[i] !== n)) strokes.forEach(([, n]) => this.svg.append(n));
   }
 
   select(key) {

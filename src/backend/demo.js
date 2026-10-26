@@ -1,7 +1,7 @@
 // Tryb demo: dane w localStorage tej przeglądarki, synchronizacja między kartami przez BroadcastChannel.
 // Służy do testów i pokazania narzędzia bez zakładania kont. Każda karta to osobna osoba.
 
-import { uid } from '../util.js?v=202610221749';
+import { uid } from '../util.js?v=202610261252';
 
 const LS_SESSIONS = 'tablica-demo-sessions';
 const LS_ENTRIES = (id) => 'tablica-demo-entries:' + id;

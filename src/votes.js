@@ -1,7 +1,7 @@
 // Głosowanie kropkami: każda osoba ma 3 kropki i może je postawić na celu, polu, temacie z parkingu albo karteczce.
 // Klucz: vote:<id osoby>:<numer kropki> → { target, color, name }. Każdy pisze tylko swoje klucze, więc nie ma konfliktów.
 
-import { h } from './util.js?v=202610221749';
+import { h } from './util.js?v=202610261252';
 
 export const VOTES_PER_PERSON = 3;
 export const personColor = (p) => (p && p.isCoach ? '#0F08A1' : '#5B4FD6');

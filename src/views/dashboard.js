@@ -1,5 +1,5 @@
-import { h, fmtDate, toast } from '../util.js?v=202610221749';
-import { topbar } from './chrome.js?v=202610221749';
+import { h, fmtDate, toast } from '../util.js?v=202610261252';
+import { topbar } from './chrome.js?v=202610261252';
 
 export async function renderDashboard(app, backend, user) {
   const listEl = h('div', { class: 'session-list' });
