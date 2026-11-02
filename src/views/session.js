@@ -1,12 +1,13 @@
 // Ekran sesji na żywo.
 
-import { h, icon, initials, toast } from '../util.js?v=202610261252';
-import { SessionStore } from '../store.js?v=202610261252';
-import { Votes, personColor, VOTES_PER_PERSON } from '../votes.js?v=202610261252';
-import { Board } from '../board.js?v=202610261252';
-import { TemplateView, SideView } from '../template.js?v=202610261252';
-import { exportSessionPNG } from '../export.js?v=202610261252';
-import { topbar } from './chrome.js?v=202610261252';
+import { h, icon, initials, toast } from '../util.js?v=202611021254';
+import { SessionStore } from '../store.js?v=202611021254';
+import { Votes, personColor, VOTES_PER_PERSON } from '../votes.js?v=202611021254';
+import { Board } from '../board.js?v=202611021254';
+import { TemplateView, SideView } from '../template.js?v=202611021254';
+import { exportSessionPNG } from '../export.js?v=202611021254';
+import { topbar } from './chrome.js?v=202611021254';
+import { sessionTitle } from '../model.js?v=202611021254';
 
 const TOOLS = [
   ['select', 'cursor', 'Zaznacz i przesuwaj'],
@@ -26,12 +27,17 @@ export async function renderSession(app, backend, user, id, cfg) {
   try { session = await backend.getSession(id); } catch (e) { console.error(e); }
   if (!session) {
     app.replaceChildren(h('div', { class: 'page' }, topbar(backend, user),
-      h('div', { class: 'login-wrap' }, h('div', { class: 'login-card' }, h('h1', {}, 'Nie ma tej sesji'), h('p', {}, 'Link jest nieaktualny albo sesja należy do innej osoby. Sprawdź, czy logujesz się adresem, na który dostałaś zaproszenie.'), h('a', { href: '#/', class: 'btn btn-primary', style: { alignSelf: 'flex-start', textDecoration: 'none' } }, 'Wróć do listy sesji')))));
+      h('div', { class: 'login-wrap' }, h('div', { class: 'login-card' }, h('h1', {}, 'Nie ma tej sesji'), h('p', {}, 'Link jest nieaktualny albo sesja należy do innej osoby. Sprawdź, czy logujesz się adresem, na który dostałaś zaproszenie.'), h('a', { href: '#/', class: 'btn btn-primary', style: { alignSelf: 'flex-start', textDecoration: 'none' } }, 'Wróć na pulpit')))));
     return () => {};
   }
 
   // Klientka występuje pod imieniem z sesji, a nie pod adresem e-mail.
-  user = user.isCoach ? user : { ...user, name: session.clientName || user.name };
+  if (!user.isCoach) {
+    let mine = [];
+    try { mine = await backend.listMentees(); } catch (e) { console.error(e); }
+    const me = mine.find(m => session.participants?.some(p => p.menteeId === m.id));
+    user = { ...user, name: me?.name || (session.participants?.length === 1 ? session.participants[0].name : '') || session.clientName || user.name };
+  }
   const store = new SessionStore(backend, session, user);
   try { await store.load(); } catch (e) { console.error(e); toast('Nie udało się wczytać zapisanych danych. Sprawdź połączenie.'); }
   const votes = new Votes(store, user);
@@ -42,7 +48,7 @@ export async function renderSession(app, backend, user, id, cfg) {
 
   // nagłówek
   const progress = h('div', { class: 'progress', role: 'img', 'aria-label': `Postęp procesu: sesja ${session.number} z ${session.total}` },
-    Array.from({ length: session.total }, (_, i) => h('span', { class: i < session.number ? 'on' : '' })));
+    Array.from({ length: session.total || 1 }, (_, i) => h('span', { class: i < session.number ? 'on' : '' })));
   const avatars = h('div', { class: 'avatars' });
   const live = h('span', { class: 'live off' }, 'łączę…');
   const saveState = h('span', { class: 'save-state', 'aria-live': 'polite' }, '');
@@ -53,15 +59,16 @@ export async function renderSession(app, backend, user, id, cfg) {
     catch (e) { console.error(e); toast('Eksport się nie udał. Spróbuj jeszcze raz.'); }
     exportBtn.disabled = false;
   });
-  const copyBtn = user.isCoach ? h('button', { type: 'button', class: 'btn btn-ghost', title: 'Kopiuj link dla klientki', onClick: async () => {
+  const copyBtn = user.isCoach ? h('button', { type: 'button', class: 'btn btn-ghost', title: 'Kopiuj link do tablicy', onClick: async () => {
     const link = location.origin + location.pathname + '#/s/' + session.id;
     try { await navigator.clipboard.writeText(link); toast('Skopiowano link do sesji'); } catch { prompt('Link do sesji:', link); }
   } }, icon('link', 18), 'Link') : null;
 
+  const cardBtn = h('a', { href: '#/k/' + session.id, class: 'btn' + (user.isCoach ? ' btn-primary' : '') }, user.isCoach ? 'Zakończ: karta sesji' : 'Karta sesji');
   const header = topbar(backend, user, {
-    crumbs: [session.clientName || 'Klientka', h('strong', {}, `Sesja ${session.number} z ${session.total} · ${session.title || 'Jak działamy i cele'}`)],
+    crumbs: [h('a', { href: '#/k/' + session.id, style: { color: 'inherit', textDecoration: 'none' }, title: 'Karta sesji' }, session.clientName || 'Mentee'), h('strong', {}, `${session.joint ? 'Sesja wspólna' : `Sesja ${session.number} z ${session.total}`} · ${sessionTitle(session)}`)],
     center: progress,
-    right: [h('div', { class: 'peers' }, avatars, live), saveState, copyBtn, exportBtn]
+    right: [h('div', { class: 'peers' }, avatars, live), saveState, copyBtn, exportBtn, cardBtn]
   });
 
   // narzędzia
@@ -92,7 +99,8 @@ export async function renderSession(app, backend, user, id, cfg) {
   }));
   board.onTool((t) => { for (const [k, b] of toolBtns) if (k !== 'vote' && k !== 'image') b.setAttribute('aria-pressed', k === t ? 'true' : 'false'); });
 
-  workspace.append(chip, tpl.el, board.el);
+  if (session.template === 'jak-dzialamy') workspace.append(chip, tpl.el, board.el);
+  else workspace.append(chip, board.el);
   body.append(nav, workspace, side.el);
   app.replaceChildren(h('div', { class: 'page' }, header, body));
   board.fit(true);

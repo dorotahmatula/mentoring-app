@@ -1,8 +1,9 @@
 // Eksport sesji do PNG: czysty, czytelny układ (szablon, parking, Co zabieram, tablica) gotowy do wysłania klientce.
 
-import { wrapLines, roundRect } from './board.js?v=202610261252';
-import { fmtDate } from './util.js?v=202610261252';
-import { HOW_FIELDS, TAKE_FIELDS, goalIds } from './template.js?v=202610261252';
+import { wrapLines, roundRect } from './board.js?v=202611021254';
+import { fmtDate } from './util.js?v=202611021254';
+import { HOW_FIELDS, TAKE_FIELDS, goalIds } from './template.js?v=202611021254';
+import { sessionTitle } from './model.js?v=202611021254';
 
 const W = 1240, PAD = 72, INNER = W - PAD * 2;
 const C = { ink: '#1A1A1A', muted: '#5F5F66', line: '#E8E8EB', accent: '#0F08A1', tint: '#F1F0FB', canvas: '#F6F5EE' };
@@ -48,15 +49,25 @@ function layout(ctx, { session, store, coachName, boardCanvas, votes, draw, mark
   text('DOROTA MATUŁA · MENTORING', PAD, y, `600 12px ${SANS}`, C.muted);
   text(fmtDate(Date.now()), W - PAD, y, `400 13px ${SANS}`, C.muted, 'right');
   y += 36;
-  text(session.title || 'Jak działamy i cele', PAD, y, `700 34px ${SERIF}`, C.accent);
-  y += 52;
-  text(`${session.clientName || ''} · Sesja ${session.number} z ${session.total}${coachName ? ' · mentorka: ' + coachName : ''}`, PAD, y, `500 16px ${SANS}`, C.muted);
+  ctx.font = `700 34px ${SERIF}`;
+  const tl = wrapLines(ctx, sessionTitle(session), INNER);
+  tl.forEach((l, i) => text(l, PAD, y + i * 44, `700 34px ${SERIF}`, C.accent));
+  y += 8 + tl.length * 44;
+  text(`${session.clientName || ''} · ${session.joint ? 'sesja wspólna' : `Sesja ${session.number} z ${session.total}`}${coachName ? ' · mentorka: ' + coachName : ''}`, PAD, y, `500 16px ${SANS}`, C.muted);
   y += 34;
   for (let i = 0; i < session.total; i++) { if (draw) { ctx.fillStyle = i < session.number ? C.accent : C.line; roundRect(ctx, PAD + i * 40, y, 32, 6, 3); ctx.fill(); } }
   y += 40;
 
   const section = (title) => { y += 16; text(title.toUpperCase(), PAD, y, `600 13px ${SANS}`, C.accent); y += 28; };
 
+  // Output sesji (po sesji)
+  if ((session.output || '').trim()) {
+    section('Output sesji');
+    para(session.output, PAD, INNER, `500 18px ${SANS}`, C.ink, 27);
+    y += 10;
+  }
+
+  if (session.template === 'jak-dzialamy') {
   // Cele
   section('Cele');
   const ids = goalIds(store);
@@ -93,6 +104,7 @@ function layout(ctx, { session, store, coachName, boardCanvas, votes, draw, mark
   y += 8;
   if (draw) { ctx.strokeStyle = C.line; roundRect(ctx, PAD, howTop, INNER, y - howTop, 12); ctx.stroke(); }
   y += 14;
+  }
 
   // Parking
   const park = store.list('park:').sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
