@@ -293,3 +293,6 @@ textarea.field-input { resize: vertical; min-height: 88px; line-height: 1.45; }
 .menu-pop button:hover { background: #F2F2F4; }
 
 .page:has(> .shell) { min-height: 100vh; }
+.row-tools { display: flex; flex-direction: column; gap: 2px; align-self: flex-start; }
+.row-tools .mini-btn { height: 22px; font-size: 14px; }
+.row-tools .mini-btn:disabled { opacity: .3; cursor: default; }

@@ -49,6 +49,7 @@ export function autosize(ta) {
 }
 
 export function toast(msg, ms = 2600) {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
   const el = h('div', { class: 'toast', role: 'status' }, msg);
   document.body.append(el);
   setTimeout(() => el.remove(), ms);

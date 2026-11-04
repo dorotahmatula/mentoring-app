@@ -1,8 +1,8 @@
 // Tryb demo: dane w localStorage tej przeglądarki, synchronizacja między kartami przez BroadcastChannel.
 // Służy do testów i pokazania narzędzia bez zakładania kont. Każda karta to osobna osoba.
 
-import { uid } from '../util.js?v=202611042212';
-import { decorate, scheduleDate } from '../model.js?v=202611042212';
+import { uid } from '../util.js?v=202611042217';
+import { decorate, scheduleDate } from '../model.js?v=202611042217';
 
 const LS = {
   sessions: 'tablica-demo-sessions',
@@ -156,6 +156,12 @@ export function createDemoBackend() {
       if (placeholder) { number = placeholder.participants[0].number; list = list.filter(x => x.id !== placeholder.id); }
       s.participants.push({ menteeId, number });
       saveSessions(list);
+    },
+    async setNumber(sessionId, menteeId, number) {
+      saveSessions(allSessions().map(s => s.id === sessionId ? { ...s, participants: s.participants.map(p => p.menteeId === menteeId ? { ...p, number } : p) } : s));
+    },
+    async leaveSession(sessionId, menteeId) {
+      saveSessions(allSessions().map(s => s.id === sessionId ? { ...s, participants: s.participants.filter(p => p.menteeId !== menteeId) } : s));
     },
     async removeParticipant(sessionId, menteeId) {
       const list = allSessions();

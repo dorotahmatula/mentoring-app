@@ -1,8 +1,8 @@
 // Wspólne klocki ekranów: ramka strony, etykiety, pasek postępu, pola z autozapisem.
 
-import { h, debounce, initials, toast } from '../util.js?v=202611042212';
-import { topbar } from './chrome.js?v=202611042212';
-import { personColor } from '../votes.js?v=202611042212';
+import { h, debounce, initials, toast } from '../util.js?v=202611042217';
+import { topbar } from './chrome.js?v=202611042217';
+import { personColor } from '../votes.js?v=202611042217';
 
 export function shell(app, backend, user, crumbs, ...content) {
   app.replaceChildren(h('div', { class: 'page' },

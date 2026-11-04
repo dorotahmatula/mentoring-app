@@ -1,10 +1,10 @@
 // Ekrany mentorki: pulpit, nowa mentee, proces mentee, planowanie i karta sesji.
 
-import { h, toast, uid } from '../util.js?v=202611042212';
-import { shell, loading, failed, badge, privTag, visTag, bar, avatar, autoText, panel } from './ui.js?v=202611042212';
-import { coachStatus, nextFor, numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, toLocalInput, fromLocalInput, scheduleDate, SCHEDULES, TEMPLATES, sortByNumber } from '../model.js?v=202611042212';
-import { SessionStore } from '../store.js?v=202611042212';
-import { goalIds, HOW_FIELDS, TAKE_FIELDS } from '../template.js?v=202611042212';
+import { h, toast, uid } from '../util.js?v=202611042217';
+import { shell, loading, failed, badge, privTag, visTag, bar, avatar, autoText, panel } from './ui.js?v=202611042217';
+import { coachStatus, nextFor, numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, toLocalInput, fromLocalInput, scheduleDate, SCHEDULES, TEMPLATES, sortByNumber } from '../model.js?v=202611042217';
+import { SessionStore } from '../store.js?v=202611042217';
+import { goalIds, HOW_FIELDS, TAKE_FIELDS } from '../template.js?v=202611042217';
 
 const DAYS = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
 const sessionsLabel = (n) => `${n} ${n === 1 ? 'sesja' : (n % 10 >= 2 && n % 10 <= 4 && (n < 12 || n > 14)) ? 'sesje' : 'sesji'}`;
@@ -192,7 +192,7 @@ export async function renderMenteeProcess(app, backend, user, menteeId) {
   }
 
   // Plan sesji: temat i termin edytujesz od razu w wierszu, resztę na karcie sesji.
-  const rows = mine.map(s => {
+  const rows = mine.map((s, i) => {
     const n = numberFor(s, m.id);
     const others = s.participants.filter(p => p.menteeId !== m.id).map(p => p.name);
     const t = autoText(s.title, v => backend.updateSession(s.id, { title: v.trim() }), { input: true, placeholder: 'Temat do ustalenia', label: `Temat sesji ${n}` });
@@ -205,7 +205,47 @@ export async function renderMenteeProcess(app, backend, user, menteeId) {
         h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' } }, badge(coachStatus(s, privs.get(s.id))),
           h('span', { class: 'small muted' }, [s.status === 'done' && s.output ? 'output: ' + s.output.slice(0, 70) : '', others.length ? 'sesja wspólna z ' + others.join(', ') : ''].filter(Boolean).join(' · ')))),
       d,
-      h('a', { href: '#/k/' + s.id, class: 'btn', style: { alignSelf: 'flex-start' }, 'aria-label': `Otwórz kartę sesji ${n}` }, 'Karta'));
+      h('a', { href: '#/k/' + s.id, class: 'btn', style: { alignSelf: 'flex-start' }, 'aria-label': `Otwórz kartę sesji ${n}` }, 'Karta'),
+      h('div', { class: 'row-tools' },
+        h('button', { type: 'button', class: 'mini-btn', title: 'Przesuń wyżej', 'aria-label': `Przesuń sesję ${n} wyżej`, disabled: i === 0, onClick: () => move(i, -1) }, '↑'),
+        h('button', { type: 'button', class: 'mini-btn', title: 'Przesuń niżej', 'aria-label': `Przesuń sesję ${n} niżej`, disabled: i === mine.length - 1, onClick: () => move(i, 1) }, '↓'),
+        s.status === 'done' ? null : delSessionBtn(s, n)));
+  });
+
+  async function renumber(list) {
+    for (let k = 0; k < list.length; k++) if (numberFor(list[k], m.id) !== k + 1) await backend.setNumber(list[k].id, m.id, k + 1);
+  }
+  async function move(i, dir) {
+    const list = mine.slice();
+    [list[i], list[i + dir]] = [list[i + dir], list[i]];
+    try { await renumber(list); renderMenteeProcess(app, backend, user, menteeId); }
+    catch (e) { console.error(e); toast('Nie udało się zmienić kolejności.'); }
+  }
+  function delSessionBtn(s, n) {
+    const joint = s.participants.length > 1;
+    const b = h('button', { type: 'button', class: 'mini-btn', title: joint ? 'Usuń z planu (sesja zostaje u drugiej osoby)' : 'Usuń sesję', 'aria-label': `Usuń sesję ${n}` }, '×');
+    let armed = false;
+    b.addEventListener('click', async () => {
+      if (!armed) { armed = true; b.textContent = 'Usuń?'; b.style.color = 'var(--danger)'; setTimeout(() => { armed = false; b.textContent = '×'; b.style.color = ''; }, 3000); return; }
+      try {
+        if (joint) await backend.leaveSession(s.id, m.id); else await backend.deleteSession(s.id);
+        const rest = mine.filter(x => x.id !== s.id);
+        await renumber(rest);
+        await backend.updateMentee(m.id, { plannedSessions: Math.max(1, rest.length) });
+        toast(`Usunięto sesję ${n}`);
+        renderMenteeProcess(app, backend, user, menteeId);
+      } catch (e) { console.error(e); toast('Nie udało się usunąć sesji.'); }
+    });
+    return b;
+  }
+  const addBtn = h('button', { type: 'button', class: 'btn btn-dashed' }, '+ Dodaj sesję na końcu planu');
+  addBtn.addEventListener('click', async () => {
+    addBtn.disabled = true;
+    try {
+      await backend.createSession({ menteeIds: [m.id] });
+      await backend.updateMentee(m.id, { plannedSessions: mine.length + 1 });
+      renderMenteeProcess(app, backend, user, menteeId);
+    } catch (e) { console.error(e); toast('Nie udało się dodać sesji.'); addBtn.disabled = false; }
   });
 
   const nameIn = h('input', { class: 'field-input', value: m.name, 'aria-label': 'Imię' });
@@ -251,7 +291,7 @@ export async function renderMenteeProcess(app, backend, user, menteeId) {
       h('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' } }, bar(done, total), h('span', { class: 'small muted' }, `${done} z ${total} sesji${next ? ' · następna ' + (next.startsAt ? fmtWhen(next.startsAt, { withTime: false }) : 'do ustalenia') : ''}`))),
     inviteBox,
     h('div', { class: 'cols2' },
-      h('div', { class: 'main' }, panel('', 'Plan sesji', h('a', { href: '#/plan/new?m=' + m.id, class: 'small', style: { fontWeight: 500, textDecoration: 'none' } }, '+ Zaplanuj sesję'), h('div', { class: 'rows' }, rows))),
+      h('div', { class: 'main' }, panel('', 'Plan sesji', h('a', { href: '#/plan/new?m=' + m.id, class: 'small', style: { fontWeight: 500, textDecoration: 'none' } }, '+ Zaplanuj sesję'), h('div', { class: 'rows' }, rows), addBtn, h('p', { class: 'small muted' }, 'Strzałkami zmieniasz kolejność, × usuwa sesję (kliknij dwa razy). Numery przeliczają się same.'))),
       h('div', { class: 'aside' },
         panel('', `O ${m.name}: główna myśl`, privTag(), autoText(priv.about, v => backend.saveMenteePrivate(m.id, { about: v }), { placeholder: 'Kilka zdań: kim jest, z czym przychodzi, na co uważać w procesie…', rows: 4, label: 'Główna myśl' })),
         panel('', 'Cele procesu', h('span', { class: 'small muted' }, goalSession ? `z sesji ${numberFor(goalSession, m.id)}` : ''),

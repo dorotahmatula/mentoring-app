@@ -2,7 +2,7 @@
 // Biblioteka ładuje się w przeglądarce z CDN, więc strona nie potrzebuje kroku budowania.
 
 const SUPABASE_ESM = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/+esm';
-import { decorate, scheduleDate, numberFor } from '../model.js?v=202611042212';
+import { decorate, scheduleDate, numberFor } from '../model.js?v=202611042217';
 
 const LS_RETURN = 'tablica-return-to';
 
@@ -186,6 +186,14 @@ export async function createSupabaseBackend({ supabaseUrl, supabaseAnonKey, coac
         if (await isEmptyPlaceholder(x)) { number = numberFor(x, menteeId); await sb.from('sessions').delete().eq('id', x.id); break; }
       }
       const { error } = await sb.from('session_participants').insert({ session_id: sessionId, mentee_id: menteeId, number, name: m.name });
+      if (error) throw error;
+    },
+    async setNumber(sessionId, menteeId, number) {
+      const { error } = await sb.from('session_participants').update({ number }).eq('session_id', sessionId).eq('mentee_id', menteeId);
+      if (error) throw error;
+    },
+    async leaveSession(sessionId, menteeId) {
+      const { error } = await sb.from('session_participants').delete().eq('session_id', sessionId).eq('mentee_id', menteeId);
       if (error) throw error;
     },
     async removeParticipant(sessionId, menteeId) {
