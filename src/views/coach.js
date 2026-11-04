@@ -1,10 +1,10 @@
 // Ekrany mentorki: pulpit, nowa mentee, proces mentee, planowanie i karta sesji.
 
-import { h, toast, uid } from '../util.js?v=202611042219';
-import { shell, loading, failed, badge, privTag, visTag, bar, avatar, autoText, panel } from './ui.js?v=202611042219';
-import { coachStatus, nextFor, numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, toLocalInput, fromLocalInput, scheduleDate, SCHEDULES, TEMPLATES, sortByNumber } from '../model.js?v=202611042219';
-import { SessionStore } from '../store.js?v=202611042219';
-import { goalIds, HOW_FIELDS, TAKE_FIELDS } from '../template.js?v=202611042219';
+import { h, toast, uid } from '../util.js?v=202611042227';
+import { shell, loading, failed, badge, privTag, visTag, bar, avatar, autoText, panel } from './ui.js?v=202611042227';
+import { coachStatus, nextFor, numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, toLocalInput, fromLocalInput, scheduleDate, SCHEDULES, TEMPLATES, sortByNumber } from '../model.js?v=202611042227';
+import { SessionStore } from '../store.js?v=202611042227';
+import { goalIds, HOW_FIELDS, TAKE_FIELDS } from '../template.js?v=202611042227';
 
 const DAYS = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
 const sessionsLabel = (n) => `${n} ${n === 1 ? 'sesja' : (n % 10 >= 2 && n % 10 <= 4 && (n < 12 || n > 14)) ? 'sesje' : 'sesji'}`;
@@ -420,10 +420,18 @@ export async function renderCoachSession(app, backend, user, sessionId) {
   const agNote = h('span', { class: 'save-note', 'aria-live': 'polite' });
   const saveAgenda = async () => {
     clearTimeout(agTimer);
-    agNote.textContent = 'Zapisuję…';
-    await savePriv({ agenda: agenda.map(({ id, min, title, note }) => ({ id, min, title, note })) });
-    agSaveBtn.hidden = true; agNote.textContent = 'Zapisano ✓';
-    setTimeout(() => { if (agSaveBtn.hidden) agNote.textContent = ''; }, 2500);
+    agNote.style.color = ''; agNote.textContent = 'Zapisuję…';
+    try {
+      await backend.saveSessionPrivate(s.id, { agenda: agenda.map(({ id, min, title, note }) => ({ id, min, title, note })) });
+      priv.agenda = agenda.slice();
+      agSaveBtn.hidden = true; agNote.textContent = 'Zapisano ✓';
+      setTimeout(() => { if (agSaveBtn.hidden) agNote.textContent = ''; }, 2500);
+      return true;
+    } catch (e) {
+      console.error(e);
+      agSaveBtn.hidden = false; agNote.style.color = 'var(--danger)'; agNote.textContent = 'Nie zapisano. Kliknij „Zapisz agendę” jeszcze raz.';
+      return false;
+    }
   };
   agSaveBtn.addEventListener('click', saveAgenda);
   let agTimer;
@@ -443,12 +451,16 @@ export async function renderCoachSession(app, backend, user, sessionId) {
   }
   const sumEl = h('p', { class: 'small muted' });
   const pasteBox = h('textarea', { class: 'field-input', rows: 5, placeholder: 'Wklej agendę, każdy punkt w osobnej linii, np.\n15 min – Otwarcie i bieżący case – Co jest teraz prawdziwym wyzwaniem?\n50 min – Mapa kompetencji' , hidden: true, 'aria-label': 'Wklejona agenda' });
-  const pasteGo = h('button', { type: 'button', class: 'btn', hidden: true }, 'Dodaj punkty z tekstu');
-  pasteGo.addEventListener('click', () => {
+  const pasteGo = h('button', { type: 'button', class: 'btn btn-primary', hidden: true }, 'Zapisz agendę');
+  async function addFromPaste() {
     const added = parseAgenda(pasteBox.value);
-    if (!added.length) { toast('Nie rozpoznałam żadnych punktów.'); return; }
-    agenda.push(...added); pasteBox.value = ''; pasteBox.hidden = true; pasteGo.hidden = true; drawAgenda(); saveAgenda(); toast(`Dodano ${added.length} punktów`);
-  });
+    if (!added.length) { toast('Nie rozpoznałam żadnych punktów. Każdy punkt wpisz w osobnej linii.'); return; }
+    agenda.push(...added); pasteBox.value = ''; pasteBox.hidden = true; pasteGo.hidden = true; drawAgenda();
+    if (await saveAgenda()) toast(`Dodano i zapisano ${added.length} punktów agendy`);
+  }
+  pasteGo.addEventListener('click', addFromPaste);
+  // Wklejenie od razu zamienia tekst na punkty i zapisuje.
+  pasteBox.addEventListener('paste', () => setTimeout(addFromPaste, 0));
   const ready = h('input', { type: 'checkbox', checked: !!priv.agendaReady });
   ready.addEventListener('change', () => savePriv({ agendaReady: ready.checked }).then(() => toast(ready.checked ? 'Agenda oznaczona jako gotowa' : 'Agenda w przygotowaniu')));
   drawAgenda();
@@ -538,7 +550,10 @@ export async function renderCoachSession(app, backend, user, sessionId) {
         isDone ? panel('private', 'Podsumowanie z nagrania', privTag(), h('p', { class: 'small' }, 'Esencja rozmowy przygotowana z Claude na podstawie nagrania.'), summaryIn, h('label', { class: 'switch' }, 'Udostępnij mentee', shareCb)) : null,
         isDone && parking.length ? panel('', 'Parking', null, ...parking.map(t => h('span', {}, t))) : null,
         panel('private', 'Moje notatki z sesji', privTag(), notesIn))));
-  return () => { if (!agSaveBtn.hidden) saveAgenda(); else clearTimeout(agTimer); };
+  return () => {
+    if (pasteBox.value.trim()) { agenda.push(...parseAgenda(pasteBox.value)); pasteBox.value = ''; saveAgenda(); }
+    else if (!agSaveBtn.hidden) saveAgenda(); else clearTimeout(agTimer);
+  };
 }
 
 export function parseAgenda(text) {
