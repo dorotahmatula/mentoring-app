@@ -296,3 +296,11 @@ textarea.field-input { resize: vertical; min-height: 88px; line-height: 1.45; }
 .row-tools { display: flex; flex-direction: column; gap: 2px; align-self: flex-start; }
 .row-tools .mini-btn { height: 22px; font-size: 14px; }
 .row-tools .mini-btn:disabled { opacity: .3; cursor: default; }
+.edit-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.edit-field.inline { flex-direction: row; align-items: center; gap: 8px; flex-wrap: wrap; }
+.edit-field.inline > input { flex: 1 1 160px; min-width: 0; }
+.edit-bar { display: flex; justify-content: flex-end; align-items: center; gap: 10px; min-height: 0; }
+.edit-bar:has(.save-btn[hidden]):has(.save-note:empty) { display: none; }
+.save-btn { height: 34px; padding: 0 14px; font-size: 14px; background: var(--accent); color: #fff; border-color: var(--accent); }
+.save-note { font-size: 12px; color: #166534; }
+.save-note:empty { display: none; }

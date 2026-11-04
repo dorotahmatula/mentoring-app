@@ -1,9 +1,9 @@
 // Eksport sesji do PNG: czysty, czytelny układ (szablon, parking, Co zabieram, tablica) gotowy do wysłania klientce.
 
-import { wrapLines, roundRect } from './board.js?v=202611042217';
-import { fmtDate } from './util.js?v=202611042217';
-import { HOW_FIELDS, TAKE_FIELDS, goalIds } from './template.js?v=202611042217';
-import { sessionTitle } from './model.js?v=202611042217';
+import { wrapLines, roundRect } from './board.js?v=202611042219';
+import { fmtDate } from './util.js?v=202611042219';
+import { HOW_FIELDS, TAKE_FIELDS, goalIds } from './template.js?v=202611042219';
+import { sessionTitle } from './model.js?v=202611042219';
 
 const W = 1240, PAD = 72, INNER = W - PAD * 2;
 const C = { ink: '#1A1A1A', muted: '#5F5F66', line: '#E8E8EB', accent: '#0F08A1', tint: '#F1F0FB', canvas: '#F6F5EE' };

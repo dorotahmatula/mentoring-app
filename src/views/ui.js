@@ -1,8 +1,8 @@
 // Wspólne klocki ekranów: ramka strony, etykiety, pasek postępu, pola z autozapisem.
 
-import { h, debounce, initials, toast } from '../util.js?v=202611042217';
-import { topbar } from './chrome.js?v=202611042217';
-import { personColor } from '../votes.js?v=202611042217';
+import { h, debounce, initials, toast } from '../util.js?v=202611042219';
+import { topbar } from './chrome.js?v=202611042219';
+import { personColor } from '../votes.js?v=202611042219';
 
 export function shell(app, backend, user, crumbs, ...content) {
   app.replaceChildren(h('div', { class: 'page' },
@@ -34,20 +34,42 @@ export function avatar(name, isCoach = false, size) {
   return h('span', { class: 'avatar', style: { background: personColor({ isCoach }), ...(size ? { width: size + 'px', height: size + 'px', fontSize: Math.round(size * 0.38) + 'px' } : {}) }, 'aria-hidden': 'true' }, initials(name));
 }
 
-// Pole tekstowe, które zapisuje się samo po chwili bez pisania.
+// Pole tekstowe z przyciskiem „Zapisz”. Dla bezpieczeństwa zapisuje się też samo po chwili bez pisania
+// i przy wyjściu z pola, a status pokazuje, czy zmiana jest już zapisana.
 export function autoText(value, onSave, { placeholder = '', rows = 3, label, input = false } = {}) {
   const el = input
     ? h('input', { class: 'field-input', value: value || '', placeholder, 'aria-label': label })
     : h('textarea', { class: 'field-input', rows, placeholder, 'aria-label': label, value: value || '' });
+  const btn = h('button', { type: 'button', class: 'btn save-btn', hidden: true, 'aria-label': label ? `Zapisz: ${label}` : 'Zapisz' }, 'Zapisz');
+  const status = h('span', { class: 'save-note', 'aria-live': 'polite' });
   let last = value || '';
-  const save = debounce(async () => {
-    if (el.value === last) return;
+  let saving = null;
+  let noteTimer;
+  const dirty = () => el.value !== last;
+  const draw = () => { btn.hidden = !dirty(); if (dirty()) status.textContent = ''; };
+  async function save() {
+    if (!dirty()) return;
+    if (saving) { await saving; if (!dirty()) return; }
     const v = el.value;
-    try { await onSave(v); last = v; } catch (e) { console.error(e); toast('Nie udało się zapisać. Sprawdź połączenie.'); }
-  }, 700);
-  el.addEventListener('input', save);
-  el.addEventListener('blur', () => save.flush());
-  return el;
+    btn.disabled = true; status.textContent = 'Zapisuję…';
+    saving = (async () => {
+      try { await onSave(v); last = v; status.textContent = 'Zapisano ✓'; clearTimeout(noteTimer); noteTimer = setTimeout(() => { if (!dirty()) status.textContent = ''; }, 2500); }
+      catch (e) { console.error(e); status.textContent = ''; toast('Nie udało się zapisać. Sprawdź połączenie.'); }
+    })();
+    await saving; saving = null;
+    btn.disabled = false; draw();
+  }
+  const auto = debounce(save, 1500);
+  el.addEventListener('input', () => { draw(); auto(); });
+  el.addEventListener('blur', (e) => { if (e.relatedTarget !== btn) auto.flush(); });
+  btn.addEventListener('click', () => { auto.cancel?.(); save(); el.focus(); });
+  if (input) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); auto.cancel?.(); save(); } });
+  const wrap = input
+    ? h('div', { class: 'edit-field inline' }, el, btn, status)
+    : h('div', { class: 'edit-field' }, el, h('div', { class: 'edit-bar' }, status, btn));
+  Object.defineProperty(wrap, 'value', { get: () => el.value });
+  wrap.input = el;
+  return wrap;
 }
 
 export function panel(cls, title, tagEl, ...body) {

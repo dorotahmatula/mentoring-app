@@ -1,9 +1,9 @@
-import { h } from './util.js?v=202611042217';
-import { createDemoBackend } from './backend/demo.js?v=202611042217';
-import { renderLogin } from './views/login.js?v=202611042217';
-import { renderCoachHome, renderNewMentee, renderMenteeProcess, renderPlanNew, renderCoachSession } from './views/coach.js?v=202611042217';
-import { renderMyProcess, renderMySession } from './views/mentee.js?v=202611042217';
-import { renderSession } from './views/session.js?v=202611042217';
+import { h } from './util.js?v=202611042219';
+import { createDemoBackend } from './backend/demo.js?v=202611042219';
+import { renderLogin } from './views/login.js?v=202611042219';
+import { renderCoachHome, renderNewMentee, renderMenteeProcess, renderPlanNew, renderCoachSession } from './views/coach.js?v=202611042219';
+import { renderMyProcess, renderMySession } from './views/mentee.js?v=202611042219';
+import { renderSession } from './views/session.js?v=202611042219';
 
 const cfg = window.TABLICA_CONFIG || {};
 const app = document.getElementById('app');
@@ -14,7 +14,7 @@ let routing = Promise.resolve();
 async function boot() {
   try {
     if (cfg.supabaseUrl && cfg.supabaseAnonKey) {
-      const { createSupabaseBackend } = await import('./backend/supabase.js?v=202611042217');
+      const { createSupabaseBackend } = await import('./backend/supabase.js?v=202611042219');
       backend = await createSupabaseBackend(cfg);
     } else backend = createDemoBackend();
     await backend.init();

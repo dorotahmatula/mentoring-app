@@ -2,7 +2,7 @@
 // Biblioteka ładuje się w przeglądarce z CDN, więc strona nie potrzebuje kroku budowania.
 
 const SUPABASE_ESM = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/+esm';
-import { decorate, scheduleDate, numberFor } from '../model.js?v=202611042217';
+import { decorate, scheduleDate, numberFor } from '../model.js?v=202611042219';
 
 const LS_RETURN = 'tablica-return-to';
 

@@ -1,10 +1,10 @@
 // Ekrany mentorki: pulpit, nowa mentee, proces mentee, planowanie i karta sesji.
 
-import { h, toast, uid } from '../util.js?v=202611042217';
-import { shell, loading, failed, badge, privTag, visTag, bar, avatar, autoText, panel } from './ui.js?v=202611042217';
-import { coachStatus, nextFor, numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, toLocalInput, fromLocalInput, scheduleDate, SCHEDULES, TEMPLATES, sortByNumber } from '../model.js?v=202611042217';
-import { SessionStore } from '../store.js?v=202611042217';
-import { goalIds, HOW_FIELDS, TAKE_FIELDS } from '../template.js?v=202611042217';
+import { h, toast, uid } from '../util.js?v=202611042219';
+import { shell, loading, failed, badge, privTag, visTag, bar, avatar, autoText, panel } from './ui.js?v=202611042219';
+import { coachStatus, nextFor, numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, toLocalInput, fromLocalInput, scheduleDate, SCHEDULES, TEMPLATES, sortByNumber } from '../model.js?v=202611042219';
+import { SessionStore } from '../store.js?v=202611042219';
+import { goalIds, HOW_FIELDS, TAKE_FIELDS } from '../template.js?v=202611042219';
 
 const DAYS = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
 const sessionsLabel = (n) => `${n} ${n === 1 ? 'sesja' : (n % 10 >= 2 && n % 10 <= 4 && (n < 12 || n > 14)) ? 'sesje' : 'sesji'}`;
@@ -174,7 +174,7 @@ export async function renderMenteeProcess(app, backend, user, menteeId) {
   const frameworks = mine.flatMap(s => (s.frameworks || []).map(f => ({ ...f, s })));
 
   const inviteBox = !m.email
-    ? h('div', { class: 'invite' }, h('div', {}, h('div', { style: { fontWeight: 600 } }, `${m.name} nie ma adresu e-mail`), h('div', { class: 'small' }, 'Dodaj adres w panelu „Dane”, żeby wysłać zaproszenie.')))
+    ? h('div', { class: 'invite' }, h('div', {}, h('div', { style: { fontWeight: 600 } }, `${m.name} nie ma adresu e-mail`), h('div', { class: 'small' }, 'Dodaj adres w panelu „Dane i plan”, żeby wysłać zaproszenie.')))
     : !m.invitedAt
       ? h('div', { class: 'invite' },
         h('div', {}, h('div', { style: { fontWeight: 600 } }, `${m.name} nie ma jeszcze dostępu`), h('div', { class: 'small' }, `Wyślij zaproszenie, gdy proces jest gotowy. ${m.name} zaloguje się mailem ${m.email} i zobaczy plan.`)),
@@ -196,7 +196,7 @@ export async function renderMenteeProcess(app, backend, user, menteeId) {
     const n = numberFor(s, m.id);
     const others = s.participants.filter(p => p.menteeId !== m.id).map(p => p.name);
     const t = autoText(s.title, v => backend.updateSession(s.id, { title: v.trim() }), { input: true, placeholder: 'Temat do ustalenia', label: `Temat sesji ${n}` });
-    t.classList.add('slim');
+    t.input.classList.add('slim');
     const d = h('input', { class: 'field-input slim', type: 'datetime-local', value: toLocalInput(s.startsAt), 'aria-label': `Termin sesji ${n}`, style: { width: '205px', flex: 'none', alignSelf: 'flex-start' } });
     d.addEventListener('change', async () => { try { await backend.updateSession(s.id, { startsAt: fromLocalInput(d.value) }); toast('Zapisano termin'); } catch (e) { console.error(e); toast('Nie udało się zapisać.'); } });
     return h('div', { class: 'row plan-edit' },
@@ -416,9 +416,18 @@ export async function renderCoachSession(app, backend, user, sessionId) {
   // --- agenda
   const agenda = (priv.agenda || []).map(a => ({ ...a, id: a.id || uid() }));
   const agendaEl = h('div', { class: 'rows' });
-  const saveAgenda = () => savePriv({ agenda: agenda.map(({ id, min, title, note }) => ({ id, min, title, note })) });
+  const agSaveBtn = h('button', { type: 'button', class: 'btn save-btn', hidden: true }, 'Zapisz agendę');
+  const agNote = h('span', { class: 'save-note', 'aria-live': 'polite' });
+  const saveAgenda = async () => {
+    clearTimeout(agTimer);
+    agNote.textContent = 'Zapisuję…';
+    await savePriv({ agenda: agenda.map(({ id, min, title, note }) => ({ id, min, title, note })) });
+    agSaveBtn.hidden = true; agNote.textContent = 'Zapisano ✓';
+    setTimeout(() => { if (agSaveBtn.hidden) agNote.textContent = ''; }, 2500);
+  };
+  agSaveBtn.addEventListener('click', saveAgenda);
   let agTimer;
-  const queueAgenda = () => { clearTimeout(agTimer); agTimer = setTimeout(saveAgenda, 600); };
+  const queueAgenda = () => { agSaveBtn.hidden = false; agNote.textContent = ''; clearTimeout(agTimer); agTimer = setTimeout(saveAgenda, 1500); };
   function drawAgenda() {
     agendaEl.replaceChildren(...agenda.map((a, i) => {
       const min = h('input', { class: 'field-input slim min', value: a.min || '', placeholder: 'min', 'aria-label': 'Czas w minutach', inputmode: 'numeric' });
@@ -520,6 +529,7 @@ export async function renderCoachSession(app, backend, user, sessionId) {
             h('button', { type: 'button', class: 'btn btn-dashed', style: { width: 'auto' }, onClick: () => { agenda.push({ id: uid(), min: '', title: '', note: '' }); drawAgenda(); agendaEl.querySelectorAll('input')[agenda.length * 3 - 2]?.focus(); } }, '+ Punkt agendy'),
             h('button', { type: 'button', class: 'btn btn-dashed', style: { width: 'auto' }, onClick: () => { pasteBox.hidden = !pasteBox.hidden; pasteGo.hidden = pasteBox.hidden; if (!pasteBox.hidden) pasteBox.focus(); } }, 'Wklej agendę od Claude')),
           pasteBox, pasteGo,
+          h('div', { class: 'edit-bar' }, agNote, agSaveBtn),
           h('label', { class: 'switch', style: { background: '#F7F7F8' } }, 'Agenda gotowa', ready))),
       h('div', { class: 'aside' },
         panel('', s.participants.length > 1 ? 'Mentee widzą' : 'Mentee widzi', visTag('widoczne'), h('span', {}, `${sessionTitle(s)} · ${fmtWhen(s.startsAt)}`), h('span', { class: 'small muted' }, 'Temat i termin. Agenda, notatki i podsumowanie zostają u Ciebie.')),
@@ -528,7 +538,7 @@ export async function renderCoachSession(app, backend, user, sessionId) {
         isDone ? panel('private', 'Podsumowanie z nagrania', privTag(), h('p', { class: 'small' }, 'Esencja rozmowy przygotowana z Claude na podstawie nagrania.'), summaryIn, h('label', { class: 'switch' }, 'Udostępnij mentee', shareCb)) : null,
         isDone && parking.length ? panel('', 'Parking', null, ...parking.map(t => h('span', {}, t))) : null,
         panel('private', 'Moje notatki z sesji', privTag(), notesIn))));
-  return () => { clearTimeout(agTimer); };
+  return () => { if (!agSaveBtn.hidden) saveAgenda(); else clearTimeout(agTimer); };
 }
 
 export function parseAgenda(text) {

@@ -1,6 +1,6 @@
 // Szablon „Jak działamy i cele” oraz boczny panel (Parking, Co zabieram).
 
-import { h, uid, debounce, autosize, icon } from './util.js?v=202611042217';
+import { h, uid, debounce, autosize, icon } from './util.js?v=202611042219';
 
 const MAX_GOALS = 3;
 
