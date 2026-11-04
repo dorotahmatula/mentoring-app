@@ -1,13 +1,13 @@
 // Ekrany mentee: mój proces i karta sesji.
 
-import { h, toast } from '../util.js?v=202611042208';
-import { shell, loading, failed, badge, bar, panel, autoText } from './ui.js?v=202611042208';
-import { numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, nextFor, sortByNumber, menteeStatus } from '../model.js?v=202611042208';
-import { HOW_FIELDS, TAKE_FIELDS, genitive } from '../template.js?v=202611042208';
-import { readEntries, goalsFrom, parkingFrom } from './coach.js?v=202611042208';
-import { exportSessionPNG } from '../export.js?v=202611042208';
-import { Board } from '../board.js?v=202611042208';
-import { Votes } from '../votes.js?v=202611042208';
+import { h, toast } from '../util.js?v=202611042212';
+import { shell, loading, failed, badge, bar, panel, autoText } from './ui.js?v=202611042212';
+import { numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, nextFor, sortByNumber, menteeStatus } from '../model.js?v=202611042212';
+import { HOW_FIELDS, TAKE_FIELDS, genitive } from '../template.js?v=202611042212';
+import { readEntries, goalsFrom, parkingFrom } from './coach.js?v=202611042212';
+import { exportSessionPNG } from '../export.js?v=202611042212';
+import { Board } from '../board.js?v=202611042212';
+import { Votes } from '../votes.js?v=202611042212';
 
 async function context(backend) {
   const [mentees, sessions] = await Promise.all([backend.listMentees(), backend.listSessions()]);

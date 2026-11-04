@@ -2,7 +2,7 @@
 // Biblioteka ładuje się w przeglądarce z CDN, więc strona nie potrzebuje kroku budowania.
 
 const SUPABASE_ESM = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/+esm';
-import { decorate, scheduleDate, numberFor } from '../model.js?v=202611042208';
+import { decorate, scheduleDate, numberFor } from '../model.js?v=202611042212';
 
 const LS_RETURN = 'tablica-return-to';
 
@@ -34,7 +34,7 @@ export async function createSupabaseBackend({ supabaseUrl, supabaseAnonKey, coac
     return (data || []).reduce((m, r) => Math.max(m, r.number), 0) + 1;
   }
   async function isEmptyPlaceholder(s) {
-    if (s.status === 'done' || s.startsAt || (s.title || '').trim() || s.participants.length !== 1) return false;
+    if (s.status === 'done' || s.startsAt || s.participants.length !== 1) return false;
     const { data: priv } = await sb.from('session_private').select('agenda, summary, notes').eq('session_id', s.id).maybeSingle();
     if (priv && ((priv.agenda || []).length || (priv.summary || '').trim() || (priv.notes || '').trim())) return false;
     const { count } = await sb.from('session_entries').select('key', { count: 'exact', head: true }).eq('session_id', s.id);

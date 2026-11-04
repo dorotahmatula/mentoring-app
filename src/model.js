@@ -1,8 +1,8 @@
 // Wspólne pojęcia: mentee, sesje, statusy. Używane przez oba tryby (demo i Supabase) i przez ekrany.
 
 export const TEMPLATES = {
-  'jak-dzialamy': 'Jak działamy i cele',
-  'none': 'Pusta tablica'
+  'jak-dzialamy': 'Jak działamy i cele + tablica',
+  'none': 'Sama tablica'
 };
 
 export const SCHEDULES = {

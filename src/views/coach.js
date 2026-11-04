@@ -1,10 +1,10 @@
 // Ekrany mentorki: pulpit, nowa mentee, proces mentee, planowanie i karta sesji.
 
-import { h, toast, uid } from '../util.js?v=202611042208';
-import { shell, loading, failed, badge, privTag, visTag, bar, avatar, autoText, panel } from './ui.js?v=202611042208';
-import { coachStatus, nextFor, numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, toLocalInput, fromLocalInput, scheduleDate, SCHEDULES, TEMPLATES, sortByNumber } from '../model.js?v=202611042208';
-import { SessionStore } from '../store.js?v=202611042208';
-import { goalIds, HOW_FIELDS, TAKE_FIELDS } from '../template.js?v=202611042208';
+import { h, toast, uid } from '../util.js?v=202611042212';
+import { shell, loading, failed, badge, privTag, visTag, bar, avatar, autoText, panel } from './ui.js?v=202611042212';
+import { coachStatus, nextFor, numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, toLocalInput, fromLocalInput, scheduleDate, SCHEDULES, TEMPLATES, sortByNumber } from '../model.js?v=202611042212';
+import { SessionStore } from '../store.js?v=202611042212';
+import { goalIds, HOW_FIELDS, TAKE_FIELDS } from '../template.js?v=202611042212';
 
 const DAYS = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
 const sessionsLabel = (n) => `${n} ${n === 1 ? 'sesja' : (n % 10 >= 2 && n % 10 <= 4 && (n < 12 || n > 14)) ? 'sesje' : 'sesji'}`;
@@ -271,23 +271,49 @@ export async function renderPlanNew(app, backend, user, preselect) {
   try { [mentees, sessions] = await Promise.all([backend.listMentees(), backend.listSessions()]); }
   catch (e) { console.error(e); failed(app, backend, user); return () => {}; }
   const picked = new Set(preselect ? [preselect] : []);
-  const boxes = mentees.map(m => {
-    const cb = h('input', { type: 'checkbox', value: m.id, checked: picked.has(m.id) });
-    cb.addEventListener('change', () => { cb.checked ? picked.add(m.id) : picked.delete(m.id); });
-    const next = nextFor(sessions, m.id);
-    return h('label', { class: 'switch', style: { justifyContent: 'flex-start', border: '1px solid var(--line)' } }, cb, avatar(m.name, false, 26), h('span', {}, m.name), h('span', { class: 'small muted', style: { marginLeft: 'auto' } }, next ? `następna: sesja ${numberFor(next, m.id)}` : ''));
-  });
   const title = h('input', { class: 'field-input', id: 'pl-title', placeholder: 'Temat do ustalenia' });
   const when = h('input', { class: 'field-input', id: 'pl-when', type: 'datetime-local' });
   const tpl = h('select', { class: 'field-input', id: 'pl-tpl' }, Object.entries(TEMPLATES).map(([k, v]) => h('option', { value: k, selected: k === 'none' }, v)));
+  const which = h('select', { class: 'field-input', id: 'pl-which' });
+  const whichLabel = h('label', { class: 'field-label', for: 'pl-which' }, 'Która sesja z planu', which);
+
+  // Sesje z planu pierwszej wybranej osoby: domyślnie najbliższa nieodbyta, temat i termin podpowiadają się z planu.
+  const planFor = (mid) => sortByNumber(sessions.filter(x => x.status !== 'done' && x.participants.some(p => p.menteeId === mid)), mid);
+  function fillFrom(id) {
+    const s = sessions.find(x => x.id === id);
+    title.value = s ? (s.title || '') : '';
+    when.value = s ? toLocalInput(s.startsAt) : '';
+    tpl.value = s ? (s.template || 'none') : 'none';
+  }
+  function drawWhich() {
+    const first = [...picked][0];
+    if (!first) { which.replaceChildren(h('option', { value: '' }, 'Najpierw wybierz mentee')); which.disabled = true; fillFrom(null); return; }
+    which.disabled = false;
+    const list = planFor(first);
+    const m = mentees.find(x => x.id === first);
+    which.replaceChildren(...list.map(s => h('option', { value: s.id }, `${m.name} · sesja ${numberFor(s, first)} · ${sessionTitle(s)}${s.startsAt ? ' · ' + fmtWhen(s.startsAt) : ''}`)), h('option', { value: 'new' }, 'Nowa sesja na końcu planu'));
+    which.value = list[0]?.id || 'new';
+    fillFrom(list[0]?.id || null);
+  }
+  which.addEventListener('change', () => fillFrom(which.value === 'new' ? null : which.value));
+
+  const boxes = mentees.map(m => {
+    const cb = h('input', { type: 'checkbox', value: m.id, checked: picked.has(m.id) });
+    cb.addEventListener('change', () => { cb.checked ? picked.add(m.id) : picked.delete(m.id); drawWhich(); });
+    const next = nextFor(sessions, m.id);
+    return h('label', { class: 'switch', style: { justifyContent: 'flex-start', border: '1px solid var(--line)' } }, cb, avatar(m.name, false, 26), h('span', {}, m.name), h('span', { class: 'small muted', style: { marginLeft: 'auto' } }, next ? `następna: sesja ${numberFor(next, m.id)}` : ''));
+  });
+  drawWhich();
+
   const err = h('p', { class: 'error', role: 'alert' });
   const go = h('button', { type: 'submit', class: 'btn btn-primary btn-lg' }, 'Zaplanuj');
   const form = h('form', { style: { display: 'contents' } },
     panel('', 'Kto bierze udział', h('span', { class: 'small muted' }, 'Jedna osoba albo kilka: sesja wspólna liczy się w procesie każdej z nich'), ...boxes),
     panel('', 'Sesja', null,
-      h('label', { class: 'field-label', for: 'pl-title' }, 'Temat', title),
+      whichLabel,
+      h('label', { class: 'field-label', for: 'pl-title' }, 'Temat (podpowiedź z planu, możesz zmienić)', title),
       h('label', { class: 'field-label', for: 'pl-when' }, 'Termin (opcjonalnie)', when),
-      h('label', { class: 'field-label', for: 'pl-tpl' }, 'Szablon na tablicy', tpl)),
+      h('label', { class: 'field-label', for: 'pl-tpl' }, 'Na tablicy', tpl)),
     err, h('div', { class: 'actions', style: { justifyContent: 'flex-end' } }, h('a', { href: '#/', class: 'btn btn-lg' }, 'Anuluj'), go));
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -295,15 +321,11 @@ export async function renderPlanNew(app, backend, user, preselect) {
     if (!ids.length) { err.textContent = 'Wybierz co najmniej jedną mentee.'; return; }
     go.disabled = true; err.textContent = '';
     try {
-      // Pierwsza osoba: wykorzystujemy jej najbliższą pustą sesję z planu, jeśli taka jest.
       const first = ids[0];
-      let target = sortByNumber(sessions.filter(x => x.status !== 'done' && x.participants.length === 1 && x.participants[0].menteeId === first && !x.startsAt && !hasTopic(x)), first)[0];
+      let target = which.value && which.value !== 'new' ? sessions.find(x => x.id === which.value) : null;
       if (!target) target = await backend.createSession({ menteeIds: [first] });
       for (const other of ids.slice(1)) await backend.addParticipant(target.id, other);
-      const patch = { template: tpl.value };
-      if (title.value.trim()) patch.title = title.value.trim();
-      if (when.value) patch.startsAt = fromLocalInput(when.value);
-      await backend.updateSession(target.id, patch);
+      await backend.updateSession(target.id, { template: tpl.value, title: title.value.trim(), startsAt: fromLocalInput(when.value) });
       toast('Sesja zaplanowana');
       location.hash = '#/k/' + target.id;
     } catch (ex) { console.error(ex); err.textContent = 'Nie udało się zaplanować sesji.'; go.disabled = false; }
@@ -348,7 +370,7 @@ export async function renderCoachSession(app, backend, user, sessionId) {
   whenIn.addEventListener('change', () => save({ startsAt: fromLocalInput(whenIn.value) }, 'Zapisano termin'));
   const durIn = h('select', { class: 'field-input', 'aria-label': 'Czas trwania' }, [45, 60, 75, 90, 120].map(n => h('option', { value: n, selected: n === (s.durationMin || 90) }, `${n} min`)));
   durIn.addEventListener('change', () => save({ durationMin: +durIn.value }));
-  const tplIn = h('select', { class: 'field-input', 'aria-label': 'Szablon na tablicy' }, Object.entries(TEMPLATES).map(([k, v]) => h('option', { value: k, selected: k === (s.template || 'none') }, v)));
+  const tplIn = h('select', { class: 'field-input', 'aria-label': 'Na tablicy' }, Object.entries(TEMPLATES).map(([k, v]) => h('option', { value: k, selected: k === (s.template || 'none') }, v)));
   tplIn.addEventListener('change', () => save({ template: tplIn.value }, 'Zapisano szablon'));
 
   // --- agenda
@@ -452,7 +474,7 @@ export async function renderCoachSession(app, backend, user, sessionId) {
           h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '12px' } },
             h('label', { class: 'field-label', style: { flex: '1 1 200px' } }, 'Termin', whenIn),
             h('label', { class: 'field-label', style: { flex: '1 1 140px' } }, 'Czas trwania', durIn),
-            h('label', { class: 'field-label', style: { flex: '1 1 200px' } }, 'Szablon na tablicy', tplIn))),
+            h('label', { class: 'field-label', style: { flex: '1 1 200px' } }, 'Na tablicy', tplIn))),
         panel('', 'Agenda', privTag('widzisz tylko Ty'), agendaEl, sumEl,
           h('div', { class: 'actions' },
             h('button', { type: 'button', class: 'btn btn-dashed', style: { width: 'auto' }, onClick: () => { agenda.push({ id: uid(), min: '', title: '', note: '' }); drawAgenda(); agendaEl.querySelectorAll('input')[agenda.length * 3 - 2]?.focus(); } }, '+ Punkt agendy'),

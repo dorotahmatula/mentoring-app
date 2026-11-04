@@ -1,8 +1,8 @@
 // Tryb demo: dane w localStorage tej przeglądarki, synchronizacja między kartami przez BroadcastChannel.
 // Służy do testów i pokazania narzędzia bez zakładania kont. Każda karta to osobna osoba.
 
-import { uid } from '../util.js?v=202611042208';
-import { decorate, scheduleDate } from '../model.js?v=202611042208';
+import { uid } from '../util.js?v=202611042212';
+import { decorate, scheduleDate } from '../model.js?v=202611042212';
 
 const LS = {
   sessions: 'tablica-demo-sessions',
@@ -59,7 +59,7 @@ export function createDemoBackend() {
   }
 
   function isEmptyPlaceholder(s) {
-    if (s.status === 'done' || s.startsAt || (s.title || '').trim() || (s.participants || []).length !== 1) return false;
+    if (s.status === 'done' || s.startsAt || (s.participants || []).length !== 1) return false;
     const priv = readJSON(localStorage, LS.sessionPriv, {})[s.id];
     if (priv && ((priv.agenda || []).length || (priv.summary || '').trim() || (priv.notes || '').trim())) return false;
     return !Object.keys(readJSON(localStorage, LS.entries(s.id), {})).length;
