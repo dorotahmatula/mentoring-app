@@ -62,7 +62,7 @@ export function fromLocalInput(v) { return v ? new Date(v).toISOString() : null;
 // Status sesji widoczny dla mentorki: [tekst, rodzaj]
 export function coachStatus(s, priv) {
   if (s.status === 'done') return ['Odbyta', 'ok'];
-  const agenda = priv?.agenda || [];
+  const agenda = agendaText(priv?.agenda).trim();
   if (!s.startsAt && !hasTopic(s)) return ['Niezaplanowana', 'muted'];
   if (!s.startsAt) return ['Bez terminu', 'warn'];
   if (!agenda.length) return ['Brak agendy', 'warn'];
@@ -95,4 +95,12 @@ export function scheduleDate(firstIso, schedule, index) {
   else if (schedule === 'biweekly') d.setDate(d.getDate() + 14 * index);
   else if (schedule === 'monthly') d.setMonth(d.getMonth() + index);
   return d.toISOString();
+}
+
+// Agenda jest zwykłym tekstem. Starsze agendy zapisane jako lista punktów zamieniamy na tekst.
+export function agendaText(a) {
+  if (!a) return '';
+  if (typeof a === 'string') return a;
+  if (Array.isArray(a)) return a.map(x => [x.min ? x.min + ' min' : '', x.title, x.note].filter(Boolean).join(' – ')).join('\n');
+  return '';
 }

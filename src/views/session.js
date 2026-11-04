@@ -1,13 +1,13 @@
 // Ekran sesji na żywo.
 
-import { h, icon, initials, toast } from '../util.js?v=202611042227';
-import { SessionStore } from '../store.js?v=202611042227';
-import { Votes, personColor, VOTES_PER_PERSON } from '../votes.js?v=202611042227';
-import { Board } from '../board.js?v=202611042227';
-import { TemplateView, SideView } from '../template.js?v=202611042227';
-import { exportSessionPNG } from '../export.js?v=202611042227';
-import { topbar } from './chrome.js?v=202611042227';
-import { sessionTitle } from '../model.js?v=202611042227';
+import { h, icon, initials, toast } from '../util.js?v=202611042231';
+import { SessionStore } from '../store.js?v=202611042231';
+import { Votes, personColor, VOTES_PER_PERSON } from '../votes.js?v=202611042231';
+import { Board } from '../board.js?v=202611042231';
+import { TemplateView, SideView } from '../template.js?v=202611042231';
+import { exportSessionPNG } from '../export.js?v=202611042231';
+import { topbar } from './chrome.js?v=202611042231';
+import { sessionTitle, agendaText } from '../model.js?v=202611042231';
 
 const TOOLS = [
   ['select', 'cursor', 'Zaznacz i przesuwaj'],
@@ -99,6 +99,17 @@ export async function renderSession(app, backend, user, id, cfg) {
   }));
   board.onTool((t) => { for (const [k, b] of toolBtns) if (k !== 'vote' && k !== 'image') b.setAttribute('aria-pressed', k === t ? 'true' : 'false'); });
 
+  // Agenda mentorki: tylko na jej ekranie, zwijana (przy udostępnianiu ekranu na Meet warto ją zwinąć).
+  if (user.isCoach) {
+    let text = '';
+    try { text = agendaText((await backend.getSessionPrivate(session.id))?.agenda).trim(); } catch (e) { console.error(e); }
+    let open = true;
+    try { open = localStorage.getItem('tablica-agenda-open') !== '0'; } catch {}
+    const det = h('details', { class: 'coach-agenda', open }, h('summary', {}, 'Moja agenda', h('span', { class: 'small muted' }, ' · widzisz tylko Ty')),
+      text ? h('div', { class: 'agenda-view' }, text) : h('p', { class: 'small muted' }, 'Brak agendy. Dodasz ją na karcie sesji.'));
+    det.addEventListener('toggle', () => { try { localStorage.setItem('tablica-agenda-open', det.open ? '1' : '0'); } catch {} });
+    side.el.prepend(det);
+  }
   if (session.template === 'jak-dzialamy') workspace.append(chip, tpl.el, board.el);
   else workspace.append(chip, board.el);
   body.append(nav, workspace, side.el);

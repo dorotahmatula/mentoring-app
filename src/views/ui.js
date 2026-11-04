@@ -1,8 +1,8 @@
 // Wspólne klocki ekranów: ramka strony, etykiety, pasek postępu, pola z autozapisem.
 
-import { h, debounce, initials, toast } from '../util.js?v=202611042227';
-import { topbar } from './chrome.js?v=202611042227';
-import { personColor } from '../votes.js?v=202611042227';
+import { h, debounce, initials, toast } from '../util.js?v=202611042231';
+import { topbar } from './chrome.js?v=202611042231';
+import { personColor } from '../votes.js?v=202611042231';
 
 export function shell(app, backend, user, crumbs, ...content) {
   app.replaceChildren(h('div', { class: 'page' },
@@ -36,6 +36,10 @@ export function avatar(name, isCoach = false, size) {
 
 // Pole tekstowe z przyciskiem „Zapisz”. Dla bezpieczeństwa zapisuje się też samo po chwili bez pisania
 // i przy wyjściu z pola, a status pokazuje, czy zmiana jest już zapisana.
+const pendingEdits = new Set();
+// Zapisuje wszystkie niezapisane pola, np. przed przejściem na inny ekran.
+export async function flushEdits() { await Promise.all([...pendingEdits].map(fn => fn())); }
+
 export function autoText(value, onSave, { placeholder = '', rows = 3, label, input = false } = {}) {
   const el = input
     ? h('input', { class: 'field-input', value: value || '', placeholder, 'aria-label': label })
@@ -53,13 +57,15 @@ export function autoText(value, onSave, { placeholder = '', rows = 3, label, inp
     const v = el.value;
     btn.disabled = true; status.textContent = 'Zapisuję…';
     saving = (async () => {
-      try { await onSave(v); last = v; status.textContent = 'Zapisano ✓'; clearTimeout(noteTimer); noteTimer = setTimeout(() => { if (!dirty()) status.textContent = ''; }, 2500); }
+      try { await onSave(v); last = v; if (!dirty()) pendingEdits.delete(flushMe); status.textContent = 'Zapisano ✓'; clearTimeout(noteTimer); noteTimer = setTimeout(() => { if (!dirty()) status.textContent = ''; }, 2500); }
       catch (e) { console.error(e); status.textContent = ''; toast('Nie udało się zapisać. Sprawdź połączenie.'); }
     })();
     await saving; saving = null;
     btn.disabled = false; draw();
   }
   const auto = debounce(save, 1500);
+  const flushMe = () => save();
+  el.addEventListener('input', () => pendingEdits.add(flushMe));
   el.addEventListener('input', () => { draw(); auto(); });
   el.addEventListener('blur', (e) => { if (e.relatedTarget !== btn) auto.flush(); });
   btn.addEventListener('click', () => { auto.cancel?.(); save(); el.focus(); });

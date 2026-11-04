@@ -1,9 +1,10 @@
-import { h } from './util.js?v=202611042227';
-import { createDemoBackend } from './backend/demo.js?v=202611042227';
-import { renderLogin } from './views/login.js?v=202611042227';
-import { renderCoachHome, renderNewMentee, renderMenteeProcess, renderPlanNew, renderCoachSession } from './views/coach.js?v=202611042227';
-import { renderMyProcess, renderMySession } from './views/mentee.js?v=202611042227';
-import { renderSession } from './views/session.js?v=202611042227';
+import { h } from './util.js?v=202611042231';
+import { createDemoBackend } from './backend/demo.js?v=202611042231';
+import { renderLogin } from './views/login.js?v=202611042231';
+import { renderCoachHome, renderNewMentee, renderMenteeProcess, renderPlanNew, renderCoachSession } from './views/coach.js?v=202611042231';
+import { renderMyProcess, renderMySession } from './views/mentee.js?v=202611042231';
+import { flushEdits } from './views/ui.js?v=202611042231';
+import { renderSession } from './views/session.js?v=202611042231';
 
 const cfg = window.TABLICA_CONFIG || {};
 const app = document.getElementById('app');
@@ -14,7 +15,7 @@ let routing = Promise.resolve();
 async function boot() {
   try {
     if (cfg.supabaseUrl && cfg.supabaseAnonKey) {
-      const { createSupabaseBackend } = await import('./backend/supabase.js?v=202611042227');
+      const { createSupabaseBackend } = await import('./backend/supabase.js?v=202611042231');
       backend = await createSupabaseBackend(cfg);
     } else backend = createDemoBackend();
     await backend.init();
@@ -30,6 +31,7 @@ async function boot() {
 
 function route() {
   routing = routing.then(async () => {
+    try { await flushEdits(); } catch (e) { console.error(e); }
     if (cleanup) { try { cleanup(); } catch (e) { console.error(e); } cleanup = null; }
     const user = backend.getUser();
     if (!user) { app.replaceChildren(renderLogin(backend, cfg)); return; }
