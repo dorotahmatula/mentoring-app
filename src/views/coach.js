@@ -1,10 +1,10 @@
 // Ekrany mentorki: pulpit, nowa mentee, proces mentee, planowanie i karta sesji.
 
-import { h, toast, uid } from '../util.js?v=202611021254';
-import { shell, loading, failed, badge, privTag, visTag, bar, avatar, autoText, panel } from './ui.js?v=202611021254';
-import { coachStatus, nextFor, numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, toLocalInput, fromLocalInput, scheduleDate, SCHEDULES, TEMPLATES, sortByNumber } from '../model.js?v=202611021254';
-import { SessionStore } from '../store.js?v=202611021254';
-import { goalIds, HOW_FIELDS, TAKE_FIELDS } from '../template.js?v=202611021254';
+import { h, toast, uid } from '../util.js?v=202611042200';
+import { shell, loading, failed, badge, privTag, visTag, bar, avatar, autoText, panel } from './ui.js?v=202611042200';
+import { coachStatus, nextFor, numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, toLocalInput, fromLocalInput, scheduleDate, SCHEDULES, TEMPLATES, sortByNumber } from '../model.js?v=202611042200';
+import { SessionStore } from '../store.js?v=202611042200';
+import { goalIds, HOW_FIELDS, TAKE_FIELDS } from '../template.js?v=202611042200';
 
 const DAYS = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
 
@@ -101,7 +101,7 @@ export async function renderCoachHome(app, backend, user) {
 export async function renderNewMentee(app, backend, user) {
   const name = h('input', { class: 'field-input', id: 'nm-name', required: true, placeholder: 'np. Natalia' });
   const email = h('input', { class: 'field-input', id: 'nm-email', type: 'email', placeholder: 'adres mentee' });
-  const countSel = h('select', { class: 'field-input', id: 'nm-count' }, [4, 5, 6, 8, 10].map(n => h('option', { value: n, selected: n === 6 }, `${n} sesji`)));
+  const countSel = h('select', { class: 'field-input', id: 'nm-count' }, [4, 5, 6, 7, 8, 10].map(n => h('option', { value: n, selected: n === 6 }, `${n} sesji`)));
   const sched = h('select', { class: 'field-input', id: 'nm-sched' }, Object.entries(SCHEDULES).map(([k, v]) => h('option', { value: k }, v)));
   const first = h('input', { class: 'field-input', id: 'nm-first', type: 'datetime-local' });
   const planEl = h('div', { class: 'rows' });
