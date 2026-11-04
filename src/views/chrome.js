@@ -1,4 +1,4 @@
-import { h, icon } from '../util.js?v=202611042200';
+import { h, icon } from '../util.js?v=202611042208';
 
 export function topbar(backend, user, { crumbs = [], center = null, right = [] } = {}) {
   const left = h('div', { class: 'crumbs' },

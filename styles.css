@@ -237,7 +237,7 @@ a.btn-primary { color: #fff; }
 .rows { display: flex; flex-direction: column; }
 .row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line-soft); text-decoration: none; color: var(--ink); }
 a.row:hover .row-title { color: var(--accent); }
-.row-main { flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.row-main { flex: 1 1 200px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .row-title { font-weight: 600; }
 .row-title.dim { color: #6B6B70; }
 .num { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; flex: none; }

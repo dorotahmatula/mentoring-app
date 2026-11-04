@@ -1,12 +1,13 @@
 // Ekrany mentorki: pulpit, nowa mentee, proces mentee, planowanie i karta sesji.
 
-import { h, toast, uid } from '../util.js?v=202611042200';
-import { shell, loading, failed, badge, privTag, visTag, bar, avatar, autoText, panel } from './ui.js?v=202611042200';
-import { coachStatus, nextFor, numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, toLocalInput, fromLocalInput, scheduleDate, SCHEDULES, TEMPLATES, sortByNumber } from '../model.js?v=202611042200';
-import { SessionStore } from '../store.js?v=202611042200';
-import { goalIds, HOW_FIELDS, TAKE_FIELDS } from '../template.js?v=202611042200';
+import { h, toast, uid } from '../util.js?v=202611042208';
+import { shell, loading, failed, badge, privTag, visTag, bar, avatar, autoText, panel } from './ui.js?v=202611042208';
+import { coachStatus, nextFor, numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, toLocalInput, fromLocalInput, scheduleDate, SCHEDULES, TEMPLATES, sortByNumber } from '../model.js?v=202611042208';
+import { SessionStore } from '../store.js?v=202611042208';
+import { goalIds, HOW_FIELDS, TAKE_FIELDS } from '../template.js?v=202611042208';
 
 const DAYS = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
+const sessionsLabel = (n) => `${n} ${n === 1 ? 'sesja' : (n % 10 >= 2 && n % 10 <= 4 && (n < 12 || n > 14)) ? 'sesje' : 'sesji'}`;
 
 async function loadPrivs(backend, sessions) {
   const out = new Map();
@@ -101,7 +102,7 @@ export async function renderCoachHome(app, backend, user) {
 export async function renderNewMentee(app, backend, user) {
   const name = h('input', { class: 'field-input', id: 'nm-name', required: true, placeholder: 'np. Natalia' });
   const email = h('input', { class: 'field-input', id: 'nm-email', type: 'email', placeholder: 'adres mentee' });
-  const countSel = h('select', { class: 'field-input', id: 'nm-count' }, [4, 5, 6, 7, 8, 10].map(n => h('option', { value: n, selected: n === 6 }, `${n} sesji`)));
+  const countSel = h('select', { class: 'field-input', id: 'nm-count' }, Array.from({ length: 12 }, (_, i) => i + 1).map(n => h('option', { value: n, selected: n === 6 }, sessionsLabel(n))));
   const sched = h('select', { class: 'field-input', id: 'nm-sched' }, Object.entries(SCHEDULES).map(([k, v]) => h('option', { value: k }, v)));
   const first = h('input', { class: 'field-input', id: 'nm-first', type: 'datetime-local' });
   const planEl = h('div', { class: 'rows' });
@@ -190,23 +191,56 @@ export async function renderMenteeProcess(app, backend, user, menteeId) {
     return b;
   }
 
+  // Plan sesji: temat i termin edytujesz od razu w wierszu, resztę na karcie sesji.
   const rows = mine.map(s => {
     const n = numberFor(s, m.id);
     const others = s.participants.filter(p => p.menteeId !== m.id).map(p => p.name);
-    return h('a', { href: '#/k/' + s.id, class: 'row' },
+    const t = autoText(s.title, v => backend.updateSession(s.id, { title: v.trim() }), { input: true, placeholder: 'Temat do ustalenia', label: `Temat sesji ${n}` });
+    t.classList.add('slim');
+    const d = h('input', { class: 'field-input slim', type: 'datetime-local', value: toLocalInput(s.startsAt), 'aria-label': `Termin sesji ${n}`, style: { width: '205px', flex: 'none', alignSelf: 'flex-start' } });
+    d.addEventListener('change', async () => { try { await backend.updateSession(s.id, { startsAt: fromLocalInput(d.value) }); toast('Zapisano termin'); } catch (e) { console.error(e); toast('Nie udało się zapisać.'); } });
+    return h('div', { class: 'row plan-edit' },
       h('span', { class: 'num' + (s.status === 'done' ? ' done' : hasTopic(s) || s.startsAt ? '' : ' empty') }, n),
-      h('div', { class: 'row-main' },
-        h('span', { class: 'row-title' + (hasTopic(s) ? '' : ' dim') }, sessionTitle(s)),
-        h('span', { class: 'small muted' }, (s.status === 'done' && s.output ? 'output: ' + s.output.slice(0, 70) : fmtWhen(s.startsAt)) + (others.length ? ' · razem z ' + others.join(', ') : ''))),
-      badge(coachStatus(s, privs.get(s.id))));
+      h('div', { class: 'row-main', style: { gap: '6px' } }, t,
+        h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' } }, badge(coachStatus(s, privs.get(s.id))),
+          h('span', { class: 'small muted' }, [s.status === 'done' && s.output ? 'output: ' + s.output.slice(0, 70) : '', others.length ? 'sesja wspólna z ' + others.join(', ') : ''].filter(Boolean).join(' · ')))),
+      d,
+      h('a', { href: '#/k/' + s.id, class: 'btn', style: { alignSelf: 'flex-start' }, 'aria-label': `Otwórz kartę sesji ${n}` }, 'Karta'));
   });
 
   const nameIn = h('input', { class: 'field-input', value: m.name, 'aria-label': 'Imię' });
   const emailIn = h('input', { class: 'field-input', type: 'email', value: m.email, placeholder: 'adres mentee', 'aria-label': 'E-mail' });
-  const saveData = h('button', { type: 'button', class: 'btn' }, 'Zapisz dane');
+  const countIn = h('select', { class: 'field-input', 'aria-label': 'Liczba sesji' }, Array.from({ length: 12 }, (_, i) => i + 1).map(n => h('option', { value: n, selected: n === total }, sessionsLabel(n))));
+  const schedIn = h('select', { class: 'field-input', 'aria-label': 'Terminy' }, Object.entries(SCHEDULES).map(([k, v]) => h('option', { value: k, selected: k === m.schedule }, v)));
+  const saveData = h('button', { type: 'button', class: 'btn' }, 'Zapisz zmiany');
   saveData.addEventListener('click', async () => {
-    try { await backend.updateMentee(m.id, { name: nameIn.value.trim() || m.name, email: emailIn.value }); toast('Zapisano'); renderMenteeProcess(app, backend, user, menteeId); }
-    catch (e) { console.error(e); toast('Nie udało się zapisać.'); }
+    saveData.disabled = true;
+    try {
+      const want = +countIn.value;
+      await backend.updateMentee(m.id, { name: nameIn.value.trim() || m.name, email: emailIn.value, plannedSessions: want, schedule: schedIn.value });
+      if (want > mine.length) for (let i = mine.length; i < want; i++) await backend.createSession({ menteeIds: [m.id] });
+      if (want < mine.length) {
+        // Usuwamy tylko puste sesje z końca planu: bez tematu, terminu i wspólnych uczestniczek.
+        const tail = mine.slice().reverse();
+        let left = mine.length - want, removed = 0;
+        for (const s of tail) {
+          if (!left) break;
+          if (s.status === 'done' || s.startsAt || hasTopic(s) || s.participants.length > 1) break;
+          await backend.deleteSession(s.id); left--; removed++;
+        }
+        if (left) toast(`Usunięto ${removed} pustych sesji. Pozostałe mają temat lub termin: usuń je z karty sesji.`);
+      }
+      toast('Zapisano');
+      renderMenteeProcess(app, backend, user, menteeId);
+    } catch (e) { console.error(e); toast('Nie udało się zapisać.'); saveData.disabled = false; }
+  });
+  const delBtn = h('button', { type: 'button', class: 'btn btn-ghost', style: { color: 'var(--danger)' } }, 'Usuń mentee i proces');
+  let armed = false;
+  delBtn.addEventListener('click', async () => {
+    if (!armed) { armed = true; delBtn.textContent = `Kliknij jeszcze raz: usuwa ${m.name}, jej sesje i notatki`; setTimeout(() => { armed = false; delBtn.textContent = 'Usuń mentee i proces'; }, 4000); return; }
+    delBtn.disabled = true;
+    try { await backend.deleteMentee(m.id); toast(`Usunięto ${m.name}`); location.hash = '#/'; }
+    catch (e) { console.error(e); toast('Nie udało się usunąć.'); delBtn.disabled = false; }
   });
 
   shell(app, backend, user, ['Mentee', h('strong', {}, m.name)],
@@ -226,7 +260,7 @@ export async function renderMenteeProcess(app, backend, user, menteeId) {
         panel('', 'Frameworki', null, frameworks.length ? frameworks.map(f => h('div', { class: 'panel-head' }, h('span', {}, f.name), badge(f.status === 'done' ? ['Done', 'ok'] : ['In progress', 'warn'])))
           : h('p', { class: 'small muted' }, 'Każdy framework z sesji trafi tu ze statusem done albo in progress.')),
         panel('private', 'Moje notatki', privTag(), autoText(priv.notes, v => backend.saveMenteePrivate(m.id, { notes: v }), { placeholder: 'Notatki o procesie, których mentee nie widzi.', rows: 4, label: 'Moje notatki' })),
-        panel('', 'Dane', null, h('label', { class: 'field-label' }, 'Imię', nameIn), h('label', { class: 'field-label' }, 'E-mail', emailIn), h('div', {}, saveData)))));
+        panel('', 'Dane i plan', null, h('label', { class: 'field-label' }, 'Imię', nameIn), h('label', { class: 'field-label' }, 'E-mail', emailIn), h('label', { class: 'field-label' }, 'Liczba sesji', countIn), h('label', { class: 'field-label' }, 'Terminy', schedIn), h('div', { class: 'actions' }, saveData), h('div', { style: { borderTop: '1px solid var(--line-soft)', paddingTop: '12px' } }, delBtn)))));
   return () => {};
 }
 

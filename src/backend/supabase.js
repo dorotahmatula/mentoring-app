@@ -2,7 +2,7 @@
 // Biblioteka ładuje się w przeglądarce z CDN, więc strona nie potrzebuje kroku budowania.
 
 const SUPABASE_ESM = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.9/+esm';
-import { decorate, scheduleDate, numberFor } from '../model.js?v=202611042200';
+import { decorate, scheduleDate, numberFor } from '../model.js?v=202611042208';
 
 const LS_RETURN = 'tablica-return-to';
 
@@ -116,6 +116,19 @@ export async function createSupabaseBackend({ supabaseUrl, supabaseAnonKey, coac
       if ('schedule' in patch) row.schedule = patch.schedule;
       const { error } = await sb.from('mentees').update(row).eq('id', id);
       if (error) throw error;
+      if ('name' in patch) await sb.from('session_participants').update({ name: patch.name }).eq('mentee_id', id);
+    },
+    async deleteMentee(id) {
+      const { data: parts, error } = await sb.from('session_participants').select('session_id').eq('mentee_id', id);
+      if (error) throw error;
+      const ids = (parts || []).map(p => p.session_id);
+      if (ids.length) {
+        const { data: all } = await sb.from('session_participants').select('session_id, mentee_id').in('session_id', ids);
+        const solo = ids.filter(sid => (all || []).filter(r => r.session_id === sid).length <= 1);
+        if (solo.length) { const { error: e1 } = await sb.from('sessions').delete().in('id', solo); if (e1) throw e1; }
+      }
+      const { error: e2 } = await sb.from('mentees').delete().eq('id', id);
+      if (e2) throw e2;
     },
     async inviteMentee(id) {
       const m = await this.getMentee(id);

@@ -1,8 +1,8 @@
 // Tryb demo: dane w localStorage tej przeglądarki, synchronizacja między kartami przez BroadcastChannel.
 // Służy do testów i pokazania narzędzia bez zakładania kont. Każda karta to osobna osoba.
 
-import { uid } from '../util.js?v=202611042200';
-import { decorate, scheduleDate } from '../model.js?v=202611042200';
+import { uid } from '../util.js?v=202611042208';
+import { decorate, scheduleDate } from '../model.js?v=202611042208';
 
 const LS = {
   sessions: 'tablica-demo-sessions',
@@ -101,6 +101,22 @@ export function createDemoBackend() {
     },
     async updateMentee(id, patch) {
       saveMentees(allMentees().map(m => m.id === id ? { ...m, ...patch } : m));
+    },
+    async deleteMentee(id) {
+      let list = allSessions();
+      const gone = [];
+      list = list.filter(s => {
+        if (!(s.participants || []).some(p => p.menteeId === id)) return true;
+        if (s.participants.length === 1) { gone.push(s.id); return false; }
+        s.participants = s.participants.filter(p => p.menteeId !== id);
+        return true;
+      });
+      saveSessions(list);
+      const sp = readJSON(localStorage, LS.sessionPriv, {});
+      gone.forEach(sid => { delete sp[sid]; try { localStorage.removeItem(LS.entries(sid)); } catch {} });
+      writeJSON(localStorage, LS.sessionPriv, sp);
+      const mp = readJSON(localStorage, LS.menteePriv, {}); delete mp[id]; writeJSON(localStorage, LS.menteePriv, mp);
+      saveMentees(allMentees().filter(m => m.id !== id));
     },
     async inviteMentee(id) {
       saveMentees(allMentees().map(m => m.id === id ? { ...m, invitedAt: new Date().toISOString() } : m));
