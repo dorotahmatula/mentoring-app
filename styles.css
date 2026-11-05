@@ -184,7 +184,7 @@ button.vote-dot:hover { transform: scale(1.15); }
 .item { position: absolute; }
 .item.sel { outline: 2px solid var(--accent); outline-offset: 2px; }
 .item.sticky { padding: 14px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,.08); font-size: 15px; line-height: 1.35; overflow: hidden; white-space: pre-wrap; word-wrap: break-word; cursor: move; }
-.item.text { font-size: 18px; white-space: pre-wrap; padding: 2px 4px; min-width: 40px; cursor: move; }
+.item.text { font-size: 18px; white-space: pre-wrap; overflow-wrap: anywhere; padding: 2px 4px; min-width: 40px; width: max-content; max-width: 480px; cursor: move; }
 .item.shape { border: 2px solid var(--accent); background: rgba(236,235,250,.5); cursor: move; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px; font-size: 15px; white-space: pre-wrap; }
 .item.shape.oval { border-radius: 50%; }
 .item.shape.rect { border-radius: 10px; }

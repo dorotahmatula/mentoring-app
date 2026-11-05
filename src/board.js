@@ -1,7 +1,7 @@
 // Tablica do wspólnej pracy: karteczki, tekst, kształty, rysowanie, obrazy, emotki.
 // Każdy element to osobny klucz item:<id> w stanie sesji, więc zmiany widać u obu osób na bieżąco.
 
-import { h, uid, throttle, debounce, icon } from './util.js?v=202611042231';
+import { h, uid, throttle, debounce, icon } from './util.js?v=202611052149';
 
 export const STICKY_COLORS = ['#FFF4C2', '#FFE0EF', '#E6E4FB', '#DDF3E4'];
 export const INK_COLORS = ['#0F08A1', '#5B4FD6', '#FF6633', '#1A1A1A'];
@@ -259,7 +259,7 @@ export class Board {
     if (v.h) n.style.height = v.h + 'px';
     const c = n.querySelector('.content');
     if (v.type === 'sticky') { n.style.background = v.color; }
-    if (v.type === 'text') { n.style.color = v.color; }
+    if (v.type === 'text') { n.style.color = v.color; n.style.maxWidth = v.w ? 'none' : ''; }
     if (v.type === 'shape') {
       n.classList.toggle('oval', v.shape === 'oval'); n.classList.toggle('rect', v.shape !== 'oval');
       n.style.borderColor = v.color; n.style.background = v.color + '14'; n.style.color = '#1A1A1A';
@@ -273,7 +273,7 @@ export class Board {
   }
 
   _handle(n, key, v) {
-    const want = this.sel === key && ['sticky', 'shape', 'image'].includes(v.type) && this.editing !== key;
+    const want = this.sel === key && ['sticky', 'shape', 'image', 'text'].includes(v.type) && this.editing !== key;
     let hd = n.querySelector(':scope > .handle');
     if (want && !hd) n.append(h('span', { class: 'handle', 'data-handle': key, 'aria-hidden': 'true' }));
     if (!want && hd) hd.remove();
@@ -389,7 +389,8 @@ export class Board {
     // Własne wykrywanie dwukliku: dwa kliknięcia w tę samą karteczkę w krótkim czasie = edycja tekstu.
     const now = Date.now();
     const tapKey = itemEl?.dataset.key || null;
-    if (tapKey && this.lastTap && this.lastTap.key === tapKey && now - this.lastTap.t < 450 && ['sticky', 'text', 'shape'].includes(itemEl.dataset.type) && this.tool === 'select') {
+    const onHandle = !!e.target.closest('[data-handle]');
+    if (tapKey && !onHandle && this.lastTap && this.lastTap.key === tapKey && now - this.lastTap.t < 450 && ['sticky', 'text', 'shape'].includes(itemEl.dataset.type) && this.tool === 'select') {
       this.lastTap = { key: null, t: now };
       e.preventDefault();
       this.edit(tapKey);
@@ -415,7 +416,8 @@ export class Board {
       const key = handle?.dataset.handle || itemEl?.dataset.key || path?.dataset.key;
       if (handle) {
         const v = this.store.get(key);
-        this.drag = { mode: 'resize', key, start: p, orig: { w: v.w, h: v.h }, ratio: v.type === 'image' ? v.h / v.w : null };
+        const node = this.nodes.get(key);
+        this.drag = { mode: 'resize', key, start: p, orig: { w: v.w || node?.offsetWidth || 200, h: v.h || node?.offsetHeight || 40 }, ratio: v.type === 'image' ? v.h / v.w : null, textOnly: v.type === 'text' };
       } else if (key) {
         this.select(key);
         const v = this.store.get(key);
@@ -451,6 +453,7 @@ export class Board {
       if (v) this._sync(d.key, { x, y });
     } else if (d.mode === 'resize') {
       let w = Math.max(60, Math.round(d.orig.w + p.x - d.start.x));
+      if (d.textOnly) { d.last = { w }; this._sync(d.key, { w }); return; }
       let hh = d.ratio ? Math.round(w * d.ratio) : Math.max(40, Math.round(d.orig.h + p.y - d.start.y));
       d.last = { w, h: hh };
       this._sync(d.key, { w, h: hh });
@@ -581,7 +584,7 @@ async function drawItem(ctx, v, r) {
     wrapLines(ctx, v.text, r.w - 28).forEach((l, i) => { if (14 + i * 20 + 20 < r.h) ctx.fillText(l, r.x + 14, r.y + 14 + i * 20); });
   } else if (v.type === 'text') {
     ctx.fillStyle = v.color || '#1A1A1A'; ctx.font = '18px "DM Sans", system-ui, sans-serif'; ctx.textBaseline = 'top';
-    String(v.text || '').split('\n').forEach((l, i) => ctx.fillText(l, r.x + 4, r.y + 4 + i * 26));
+    wrapLines(ctx, v.text, Math.max(40, r.w - 8)).forEach((l, i) => ctx.fillText(l, r.x + 4, r.y + 4 + i * 26));
   } else if (v.type === 'shape') {
     ctx.lineWidth = 2; ctx.strokeStyle = v.color; ctx.fillStyle = v.color + '14';
     if (v.shape === 'oval') { ctx.beginPath(); ctx.ellipse(r.x + r.w / 2, r.y + r.h / 2, r.w / 2, r.h / 2, 0, 0, Math.PI * 2); }

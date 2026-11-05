@@ -1,10 +1,10 @@
 // Ekrany mentorki: pulpit, nowa mentee, proces mentee, planowanie i karta sesji.
 
-import { h, toast, uid } from '../util.js?v=202611042231';
-import { shell, loading, failed, badge, privTag, visTag, bar, avatar, autoText, panel } from './ui.js?v=202611042231';
-import { agendaText, coachStatus, nextFor, numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, toLocalInput, fromLocalInput, scheduleDate, SCHEDULES, TEMPLATES, sortByNumber } from '../model.js?v=202611042231';
-import { SessionStore } from '../store.js?v=202611042231';
-import { goalIds, HOW_FIELDS, TAKE_FIELDS } from '../template.js?v=202611042231';
+import { h, toast, uid } from '../util.js?v=202611052149';
+import { shell, loading, failed, badge, privTag, visTag, bar, avatar, autoText, panel } from './ui.js?v=202611052149';
+import { agendaText, coachStatus, nextFor, numberFor, sessionTitle, hasTopic, fmtWhen, fmtDateLong, toLocalInput, fromLocalInput, scheduleDate, SCHEDULES, TEMPLATES, sortByNumber } from '../model.js?v=202611052149';
+import { SessionStore } from '../store.js?v=202611052149';
+import { goalIds, HOW_FIELDS, TAKE_FIELDS } from '../template.js?v=202611052149';
 
 const DAYS = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
 const sessionsLabel = (n) => `${n} ${n === 1 ? 'sesja' : (n % 10 >= 2 && n % 10 <= 4 && (n < 12 || n > 14)) ? 'sesje' : 'sesji'}`;

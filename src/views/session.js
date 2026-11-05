@@ -1,13 +1,13 @@
 // Ekran sesji na żywo.
 
-import { h, icon, initials, toast } from '../util.js?v=202611042231';
-import { SessionStore } from '../store.js?v=202611042231';
-import { Votes, personColor, VOTES_PER_PERSON } from '../votes.js?v=202611042231';
-import { Board } from '../board.js?v=202611042231';
-import { TemplateView, SideView } from '../template.js?v=202611042231';
-import { exportSessionPNG } from '../export.js?v=202611042231';
-import { topbar } from './chrome.js?v=202611042231';
-import { sessionTitle, agendaText } from '../model.js?v=202611042231';
+import { h, icon, initials, toast } from '../util.js?v=202611052149';
+import { SessionStore } from '../store.js?v=202611052149';
+import { Votes, personColor, VOTES_PER_PERSON } from '../votes.js?v=202611052149';
+import { Board } from '../board.js?v=202611052149';
+import { TemplateView, SideView } from '../template.js?v=202611052149';
+import { exportSessionPNG } from '../export.js?v=202611052149';
+import { topbar } from './chrome.js?v=202611052149';
+import { sessionTitle, agendaText } from '../model.js?v=202611052149';
 
 const TOOLS = [
   ['select', 'cursor', 'Zaznacz i przesuwaj'],
